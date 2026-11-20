@@ -4,7 +4,7 @@ CropShield AI is a planned wheat-first tool that helps farmers track visible cro
 
 ## Status
 
-Phase 0 — Repository Foundation. Application development has not started.
+Phase 1 — Frontend demo. The workspace includes all ten application pages and runs with illustrative data. Field changes, reminders, settings, and saved comparisons last for the current session. Scanner photos stay in the browser. AI replies and forecasts use fixed examples.
 
 ## Planned functionality
 
@@ -32,7 +32,7 @@ Phase 0 — Repository Foundation. Application development has not started.
 
 | Path | Purpose |
 | --- | --- |
-| `frontend/` | Next.js application |
+| `frontend/` | Next.js application and typed demo fixtures |
 | `backend/` | FastAPI application |
 | `supabase/migrations/` | Database migrations |
 | `docs/` | Project, architecture, development, hackathon, and research plans |
@@ -54,4 +54,14 @@ See the [development plan](docs/DEVELOPMENT_PLAN.md) for phase outcomes.
 
 ## Setup prerequisites
 
-Phase 0 requires Git. Later phases will require Node.js and a package manager, Python and a virtual environment, a Supabase project, and server-side Gemini credentials. Select compatible stable dependencies when implementation begins.
+Use Git, Node.js 24, and npm for the Phase 1 frontend. The demo requires no environment variables.
+
+```powershell
+cd frontend
+npm ci
+npm run dev
+```
+
+Open [localhost:3000](http://localhost:3000). From `frontend/`, run `npm run typecheck`, `npm run lint`, and `npm run build` to verify the app.
+
+Sample wheat photos are by [Marek Studzinski](https://unsplash.com/photos/UQEpP1nll1A), [Leonardo Baldissara](https://unsplash.com/photos/TdiU8Q4ejH8), and [Jatin Punia](https://unsplash.com/photos/PLrAAPUfGIQ) on Unsplash. They illustrate the interface and are not evidence from the sample fields.

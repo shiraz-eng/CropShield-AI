@@ -2,28 +2,32 @@
 
 ## Current phase
 
-Phase 0 — Repository Foundation.
+Phase 1 — Frontend and UI/UX.
 
 ## Completed
 
-- Initialized Git on main and established the repository layout.
-- Documented the planned architecture, development phases, hackathon demo, and research.
-- Added Git ignore rules and an empty-value environment template.
+- Built ten responsive workspace pages plus field and report detail routes.
+- Implemented local image previews, simulated scan and symptom review, and comparisons across 15-, 20-, and 25-day sample intervals.
+- Added sample forecasts, session-only field edits and reminders, English and Urdu demonstration replies, printable reports, and settings.
 
 ## Pending
 
-- Phase 1 frontend scaffolding, followed by the phases in [the development plan](docs/DEVELOPMENT_PLAN.md).
+- Phase 2 authentication and field management. See the [development plan](docs/DEVELOPMENT_PLAN.md).
 
 ## Known blockers
 
-None identified for Phase 0.
+None identified for Phase 1. Session edits reset on reload. Weather, AI output, and observation history use fixtures. Scanner photos stay in the browser.
 
 ## Relevant commands
 
-- `git status --short --branch`
-- `git log -1 --oneline`
-- `git check-ignore -v .env frontend/.env.local frontend/node_modules/demo backend/.venv/demo`
+- In `frontend/`, run `npm ci` and then `npm run dev`.
+- Run `npm run typecheck`, `npm run lint`, and `npm run build` to verify the frontend.
+
+## Verification
+
+- Verified a lockfile install, strict TypeScript, ESLint, and a production build.
+- Tested all ten routes in Edge at desktop, 390 px, and 320 px widths. The smoke test covered local image upload validation and drag-and-drop, field edits, all four Crop Doctor states, invalid dates and 15-, 20-, and 25-day comparisons, saved reports, weather selection, reminder completion, notification dismissal, Urdu replies, and print layout.
 
 ## Next recommended action
 
-Initialize the Next.js App Router frontend in `frontend/` with TypeScript, Tailwind CSS, and shadcn/ui.
+Implement authentication and owner-scoped field records, with private photo storage and cross-account access tests.
