@@ -67,6 +67,13 @@ export function AuthForm({
             </p>
           )}
           {notice && <p role="status">{notice}</p>}
+          {mode === "login" && configured && (
+            <p className="insight">
+              <strong>Demo email</strong> cropshield-demo@example.com
+              <br />
+              Use the demo password shared with you.
+            </p>
+          )}
           <form action={submit} className="stack">
             {mode === "signup" && (
               <label>
