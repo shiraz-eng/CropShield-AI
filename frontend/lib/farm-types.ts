@@ -32,6 +32,8 @@ export interface SavedObservation {
 export type FarmFeedback = { error?: string; message?: string; id?: string };
 export const PHOTO_BUCKET = "crop-observations";
 export const MAX_PHOTOS = 3;
+// Keep multipart metadata below the Vercel Function request limit.
+export const VERCEL_OBSERVATION_BYTES = 4 * 1024 * 1024;
 export const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 export const photoExtensions = {
   "image/jpeg": "jpg",

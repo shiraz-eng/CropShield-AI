@@ -11,16 +11,16 @@ from .comparison import DatasetPhoto, DatasetSource, compare_dataset
 from .gemini import AnalysisUnavailable, GeminiCropAnalysis
 from .images import MAX_IMAGE_BYTES, CropImage
 
-FRONTEND = Path(__file__).resolve().parents[2] / "frontend"
+SAMPLES = Path(__file__).with_name("sample_data")
 NOTICE = "Illustrative growth-stage comparison — not verified historical field progression."
 
 
 def load_sample_photos() -> list[DatasetPhoto]:
-    """Load the two attributed sample photos from the shared frontend catalog."""
-    catalog = json.loads((FRONTEND / "lib" / "comparison-samples.json").read_text(encoding="utf-8"))
+    """Load the two attributed sample photos bundled with the API."""
+    catalog = json.loads((SAMPLES / "comparison-samples.json").read_text(encoding="utf-8"))
     photos = []
     for entry in catalog["photos"]:
-        with (FRONTEND / "public" / "crops" / entry["filename"]).open("rb") as image:
+        with (SAMPLES / entry["filename"]).open("rb") as image:
             content = image.read(MAX_IMAGE_BYTES + 1)
         if not 0 < len(content) <= MAX_IMAGE_BYTES:
             raise ValueError("Invalid sample photo size.")

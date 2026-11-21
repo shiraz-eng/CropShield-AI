@@ -22,9 +22,11 @@ interface Preview {
 export function Scanner({
   fields,
   initialField,
+  maxTotalBytes,
 }: {
   fields: SavedField[];
   initialField?: string;
+  maxTotalBytes?: number;
 }) {
   const [field, setField] = useState(
     fields.find(({ id }) => id === initialField)?.id ?? fields[0]?.id ?? "",
@@ -58,6 +60,7 @@ export function Scanner({
   function add(files: FileList) {
     const added: Preview[] = [];
     const rejected: string[] = [];
+    let totalBytes = photos.reduce((sum, photo) => sum + photo.file.size, 0);
     for (const file of files) {
       const error = validatePhoto(file);
       if (error) {
@@ -68,6 +71,11 @@ export function Scanner({
         rejected.push("Choose up to three photos per observation.");
         break;
       }
+      if (maxTotalBytes && totalBytes + file.size > maxTotalBytes) {
+        rejected.push(`${file.name}: Keep the combined upload at 4 MB or less.`);
+        continue;
+      }
+      totalBytes += file.size;
       const url = URL.createObjectURL(file);
       urls.current.add(url);
       added.push({ id: crypto.randomUUID(), file, url });
@@ -216,7 +224,7 @@ export function Scanner({
               >
                 <CloudUpload size={32} />
                 <strong>Drop photos or browse files</strong>
-                <small>JPEG, PNG, WebP · Up to three photos, 10 MB each</small>
+                <small>JPEG, PNG, WebP · Up to three photos, {maxTotalBytes ? "4 MB total" : "10 MB each"}</small>
               </button>
               {errors.length > 0 && (
                 <p className="message-error" role="alert">

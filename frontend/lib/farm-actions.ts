@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { identity } from "./supabase/server";
 import {
   MAX_PHOTOS,
+  VERCEL_OBSERVATION_BYTES,
   PHOTO_BUCKET,
   photoExtensions,
   type FarmFeedback,
@@ -132,6 +133,9 @@ export async function saveObservation(
       error:
         "Choose a field, a valid observation date, and one to three photos.",
     };
+  }
+  if (process.env.VERCEL === "1" && files.reduce((bytes, file) => bytes + file.size, 0) > VERCEL_OBSERVATION_BYTES) {
+    return { error: "Keep the combined upload at 4 MB or less." };
   }
   const field = await client
     .from("fields")

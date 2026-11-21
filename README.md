@@ -88,6 +88,12 @@ python -m venv .venv
 
 Check [the health endpoint](http://127.0.0.1:8000/health). For Crop Doctor, set server-side `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` to the same project and publishable key as the frontend, and set `GEMINI_API_KEY`. FastAPI reads these from `backend/.env` (gitignored; copy `backend/.env.example`) unless they are already set in the process environment. Keep FastAPI on loopback for local development. The frontend targets port 8000 by default. Set the server-only `CROP_ANALYSIS_API_URL` if you use another backend origin. Save a wheat observation in Scanner, open it in Crop Doctor, and choose **Analyze saved photos**. Findings are saved to `crop_analyses` and reappear after reload.
 
+### Vercel production
+
+The private GitHub repository deploys two projects from `main`. The [Next.js app](https://cropshield-ai-theta.vercel.app) uses `frontend/`. The [FastAPI service](https://cropshield-ai-api.vercel.app/health) uses `backend/`. Configure the frontend's `APP_ORIGIN` and `CROP_ANALYSIS_API_URL` with those production origins. Keep `GEMINI_API_KEY` in the backend project's sensitive production environment variables. Retain the production callback and recovery URLs in Supabase Auth.
+
+The hosted Scanner accepts up to three photos with a 4 MB combined limit to leave room for multipart metadata under the Vercel Function request cap. The local limit stays at 10 MB per photo.
+
 ### Gemini adapter tests
 
 Run the tests from `backend/` without provider credentials:
@@ -105,7 +111,7 @@ To run a single provider smoke test, set the server-only `GEMINI_API_KEY` in the
 
 The independent Python service shares the existing Gemini configuration, validates the model’s structured findings, and keeps visual evidence separate from interpretations. Run both adapter suites with `.\.venv\Scripts\python.exe -m unittest discover -s tests -v` from `backend/`. The app calls `POST /comparisons` (two observations of the same owned wheat field on different dates) and `POST /comparisons/illustrative` (the attributed samples). Both save to `crop_comparisons`.
 
-The sample command and the web preview use the same attributed image catalog. From `backend/`, run `.\.venv\Scripts\python.exe -m crop_analysis.compare_samples --sources` to inspect the provenance offline. With a configured server-side Gemini key, omit `--sources` to send the two sample photos for an illustrative comparison. This command prints findings and does not save a report.
+The sample command uses the attributed copies bundled in `backend/crop_analysis/sample_data`. Keep those files in sync with the web preview catalog and images when updating the examples. From `backend/`, run `.\.venv\Scripts\python.exe -m crop_analysis.compare_samples --sources` to inspect the provenance offline. With a configured server-side Gemini key, omit `--sources` to send the two sample photos for an illustrative comparison. This command prints findings and does not save a report.
 
 The [Phase 4 migration](supabase/migrations/20261120185204_phase4_crop_comparisons.sql) defines owner-scoped comparison storage. It was tested with PostgreSQL fixtures and applied to the hosted CropShield project.
 
