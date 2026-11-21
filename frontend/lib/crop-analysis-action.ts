@@ -73,7 +73,7 @@ export async function askAssistant(
   const response = await backendResponse("/assistant", {
     method: "POST",
     body: JSON.stringify({ field_id: fieldId || null, question, language, history }),
-  });
+  }, { retryConnection: true });
   if (!(response instanceof Response)) return response;
   if (response.status === 404) {
     revalidatePath("/assistant");
