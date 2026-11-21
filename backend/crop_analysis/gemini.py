@@ -44,12 +44,20 @@ class GeminiCropAnalysis:
         self.model = model
 
     @classmethod
-    def from_environment(cls):
+    def from_environment(cls, *, retry_overload: bool = False):
         key = os.environ.get("GEMINI_API_KEY", "").strip()
         model = os.environ.get("GEMINI_MODEL", "").strip() or DEFAULT_MODEL
         if not key:
             raise AnalysisUnavailable("not_configured", "Crop analysis is unavailable.")
-        options = types.HttpOptions(timeout=25_000, retry_options=types.HttpRetryOptions(attempts=1))
+        retry = types.HttpRetryOptions(attempts=1)
+        timeout = 25_000
+        if retry_overload:
+            # Preserve time for the owner-scoped context reads and the frontend's 90 s deadline.
+            timeout = 18_000
+            retry = types.HttpRetryOptions(
+                attempts=3, initial_delay=1, max_delay=2, jitter=0.5, http_status_codes=[503],
+            )
+        options = types.HttpOptions(timeout=timeout, retry_options=retry)
         return cls(genai.Client(api_key=key, http_options=options), model)
 
     def close(self):
@@ -99,6 +107,8 @@ class GeminiCropAnalysis:
             if error.code in (408, 504):
                 raise AnalysisUnavailable("timeout", "Crop analysis timed out. Try again shortly.") from None
             logger.warning("Gemini request failed: HTTP %s %s", error.code, error.status)
+            if error.code == 503:
+                raise AnalysisUnavailable("provider_busy", "Gemini is temporarily busy. Try again shortly.") from None
             raise AnalysisUnavailable("provider_error", "Crop analysis is unavailable. Try again shortly.") from None
         except httpx.RequestError as error:
             logger.warning("Gemini request failed: %s", type(error).__name__)

@@ -48,6 +48,17 @@ class CropAnalysisTests(unittest.TestCase):
             finally:
                 analysis.close()
 
+    def test_assistant_provider_retries_only_overload(self):
+        with (
+            patch.dict(os.environ, {"GEMINI_API_KEY": "local-test-placeholder"}),
+            patch("crop_analysis.gemini.genai.Client") as client,
+        ):
+            GeminiCropAnalysis.from_environment(retry_overload=True)
+            options = client.call_args.kwargs["http_options"]
+            self.assertEqual(options.timeout, 18_000)
+            self.assertEqual(options.retry_options.attempts, 3)
+            self.assertEqual(options.retry_options.http_status_codes, [503])
+
     def test_uncertain_stage_uses_one_structured_call(self):
         self.client.models.generate_content.return_value.text = json.dumps(self.uncertain)
         result = self.model.analyze(self.observation, "wheat", [png_photo()])
