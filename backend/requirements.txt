@@ -1,0 +1,7 @@
+fastapi==0.165.0
+google-genai==3.6.1
+httpx2==2.16.2
+Pillow==13.0.0
+pydantic==2.14.4
+reportlab==5.1.0
+uvicorn==0.54.0

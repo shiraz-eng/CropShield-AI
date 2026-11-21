@@ -1,0 +1,51 @@
+{
+  "previous_growth_stage": "grain_development",
+  "current_growth_stage": "ripening",
+  "observed_changes": [
+    "The first image shows green wheat heads standing upright with prominent green coloration throughout the spikelets and awns.",
+    "The second image shows wheat heads with a more advanced golden-yellow hue, indicating maturation and drying.",
+    "The orientation of the primary wheat head in the second image is nodding or curving downward compared to the upright stance in the first image."
+  ],
+  "newly_visible_symptoms": [],
+  "no_longer_visible_symptoms": [],
+  "possible_concerns": [
+    "Natural senescence and maturity as indicated by the golden coloration."
+  ],
+  "image_comparability": "limited",
+  "uncertainty_notes": [
+    "The two images represent different scenes and angles, making this an illustrative comparison rather than a true historical tracking of the same plants."
+  ],
+  "suggested_followup": [
+    "Monitor moisture levels in the field if harvest timing is approaching.",
+    "Inspect individual heads for even maturity across the entire field."
+  ],
+  "comparison_id": "078008f5-cefd-4a09-ae17-6ae8e14a27b2",
+  "comparison_mode": "illustrative_dataset",
+  "earlier_observation_id": null,
+  "later_observation_id": null,
+  "interval_days": null,
+  "source_provenance": [
+    {
+      "dataset_name": "Unsplash wheat photo collection",
+      "source_url": "https://unsplash.com/photos/PLrAAPUfGIQ",
+      "attribution": "Jatin Punia",
+      "license": "Unsplash License",
+      "known_label": "Close-up of green wheat",
+      "verified_capture_date": null,
+      "verified_plot_id": null
+    },
+    {
+      "dataset_name": "Unsplash wheat photo collection",
+      "source_url": "https://unsplash.com/photos/UQEpP1nll1A",
+      "attribution": "Marek Studzinski",
+      "license": "Unsplash License",
+      "known_label": "Close-up of a field of wheat",
+      "verified_capture_date": null,
+      "verified_plot_id": null
+    }
+  ],
+  "model_name": "gemini-3.5-flash-lite",
+  "created_at": "2026-11-21T08:33:09.284514Z",
+  "notice": "Illustrative growth-stage comparison \u2014 not verified historical field progression."
+}
+illustrative_rc 0 elapsed_ms 4365

@@ -1,0 +1,5 @@
+PASS two labeled confirmed QA accounts provisioned
+PASS hosted login, dashboard and session reload
+PASS saved field reopens after reload
+PASS Scanner rejected unsupported file
+PASS uploaded photo persists and renders after reload

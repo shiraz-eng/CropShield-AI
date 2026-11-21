@@ -9,13 +9,11 @@ import {
   Check,
   CircleAlert,
   Info,
-  MapPin,
   Sprout,
   type LucideIcon,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
 import {
-  fieldObservations,
   formatDate,
   type CropComparison,
   type CropObservation,
@@ -153,7 +151,7 @@ export function CropPhoto({
         alt={alt}
         fill
         preload={priority}
-        unoptimized={src.startsWith("blob:")}
+        unoptimized={src.startsWith("blob:") || src.startsWith("http")}
         sizes={
           className.includes("hero")
             ? "(max-width: 700px) 100vw, 1200px"
@@ -161,46 +159,6 @@ export function CropPhoto({
         }
       />
     </div>
-  );
-}
-
-export function FieldCard({ field }: { field: Field }) {
-  const last = fieldObservations(field.id).at(-1);
-  return (
-    <article className="card field-card">
-      <div className="field-photo">
-        <CropPhoto src={field.photo} alt="Illustrative wheat crop" />
-        <span className="photo-chip">
-          <Sprout size={13} />
-          {field.crop}
-        </span>
-      </div>
-      <div className="field-info">
-        <h3>{field.name}</h3>
-        <p>
-          <MapPin size={14} />
-          {field.location} · {field.acres} acres
-        </p>
-        <p>
-          <CalendarDays size={14} />
-          {last ? formatDate(last.date) : "No observations yet"}
-        </p>
-        <div className="field-bottom">
-          {last ? (
-            <CropStageBadge stage={last.stage} />
-          ) : (
-            <span className="badge">Awaiting observation</span>
-          )}
-          <Link
-            className="round-link"
-            href={`/fields/${field.id}`}
-            aria-label={`View details for ${field.name}`}
-          >
-            <ArrowRight size={16} />
-          </Link>
-        </div>
-      </div>
-    </article>
   );
 }
 

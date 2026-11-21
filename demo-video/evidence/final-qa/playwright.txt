@@ -1,0 +1,15 @@
+PASS anonymous dashboard → login
+PASS anonymous fields → login
+PASS anonymous scanner → login
+PASS anonymous crop-doctor → login
+PASS anonymous comparison → login
+PASS anonymous weather → login
+PASS anonymous reminders → login
+PASS anonymous assistant → login
+PASS anonymous reports → login
+PASS anonymous settings → login
+Login navigation to visible heading: 3710 ms
+PASS configured auth navigation
+PASS mobile login has no horizontal overflow
+PASS zero uncaught page errors
+PASS analysis rejects anonymous request

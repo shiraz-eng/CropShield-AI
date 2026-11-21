@@ -1,0 +1,19 @@
+{
+  "dataset_name": "Unsplash wheat photo collection",
+  "license": "Unsplash License",
+  "license_url": "https://unsplash.com/license",
+  "photos": [
+    {
+      "filename": "close.jpg",
+      "label": "Close-up of green wheat",
+      "attribution": "Jatin Punia",
+      "source_url": "https://unsplash.com/photos/PLrAAPUfGIQ"
+    },
+    {
+      "filename": "golden.jpg",
+      "label": "Close-up of a field of wheat",
+      "attribution": "Marek Studzinski",
+      "source_url": "https://unsplash.com/photos/UQEpP1nll1A"
+    }
+  ]
+}

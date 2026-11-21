@@ -1,36 +1,46 @@
 "use client";
 
 import { Settings as SettingsIcon } from "lucide-react";
-import { useState, type FormEvent } from "react";
+import { useState, useTransition, type FormEvent } from "react";
 import type { User } from "@/lib/data";
 import { useDemo } from "@/lib/state";
-import { MockDataNotice, PageHeader, SectionTitle } from "./shared";
+import { PageHeader, SectionTitle } from "./shared";
+import { saveProfile } from "@/lib/farm-actions";
+import { logout } from "@/lib/auth-actions";
+import Link from "next/link";
 
 export function Settings() {
   const { user, setUser } = useDemo();
   const [draft, setDraft] = useState(user);
-  const [saved, setSaved] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    message?: string;
+    error?: string;
+  }>({});
+  const [pending, start] = useTransition();
   function update<K extends keyof User>(key: K, value: User[K]) {
     setDraft((previous) => ({ ...previous, [key]: value }));
-    setSaved(false);
+    setFeedback({});
   }
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!draft.name.trim()) return;
-    setUser({ ...draft, name: draft.name.trim(), email: draft.email.trim() });
-    setSaved(true);
+    start(async () => {
+      const result = await saveProfile(draft.name, draft.language);
+      setFeedback(result);
+      if (!result.error) setUser({ ...draft, name: draft.name.trim() });
+    });
   }
   return (
     <>
       <PageHeader
         title="Settings"
-        description="Manage your demo profile and workspace preferences."
+        description="Manage your profile and workspace preferences."
         icon={SettingsIcon}
       />
-      <MockDataNotice>
-        Changes apply in this app session. Account management requires a
-        backend.
-      </MockDataNotice>
+      <p>
+        Your name and preferred language are saved to your account. Other
+        preferences apply for this session.
+      </p>
       <form className="stack" onSubmit={submit}>
         <div className="grid-two">
           <section className="card panel stack">
@@ -47,12 +57,7 @@ export function Settings() {
             </label>
             <label>
               Email address
-              <input
-                type="email"
-                value={draft.email}
-                required
-                onChange={(event) => update("email", event.target.value)}
-              />
+              <input type="email" value={draft.email} readOnly />
             </label>
             <div className="metric">
               <small>Workspace role</small>
@@ -116,20 +121,29 @@ export function Settings() {
           </section>
         </div>
         <div className="actions">
-          <button className="button" type="submit">
-            Save settings
+          <button className="button" type="submit" disabled={pending}>
+            {pending ? "Saving…" : "Save settings"}
           </button>
           <p className="form-status" role="status">
-            {saved ? "Settings saved for this session." : ""}
+            {feedback.message}
           </p>
+          {feedback.error && (
+            <p role="alert" className="message-error">
+              {feedback.error}
+            </p>
+          )}
         </div>
       </form>
       <section className="card panel">
         <SectionTitle title="Account settings" />
-        <p>
-          Sign-in, password updates, and account management will be available
-          after backend integration.
-        </p>
+        <div className="actions">
+          <Link className="button button-outline" href="/forgot-password">
+            Reset password
+          </Link>
+          <form action={logout}>
+            <button className="button">Sign out</button>
+          </form>
+        </div>
       </section>
     </>
   );

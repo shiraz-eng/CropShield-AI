@@ -1,0 +1,2 @@
+Saved QA field coordinates: 31.42, 73.08
+Analysis HTTP 503 in 3359 ms; Crop analysis is unavailable. Try again shortly.

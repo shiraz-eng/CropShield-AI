@@ -1,264 +1,263 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowRight, CloudUpload, ScanLine, X } from "lucide-react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { saveObservation } from "@/lib/farm-actions";
 import {
-  ArrowLeft,
-  ArrowRight,
-  Check,
-  CloudUpload,
-  ScanLine,
-  Sparkles,
-  X,
-} from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import type { CropAnalysis } from "@/lib/data";
-import {
-  acceptedImages,
-  analyzeExample,
-  uploadError,
-} from "@/lib/mock-service";
-import { useDemo } from "@/lib/state";
-import {
-  CropPhoto,
-  FieldSelect,
-  LoadingSkeleton,
-  MockDataNotice,
-  PageHeader,
-  SectionTitle,
-} from "./shared";
+  MAX_PHOTOS,
+  photoExtensions,
+  type FarmFeedback,
+  type SavedField,
+} from "@/lib/farm-types";
+import { validatePhoto } from "@/lib/farm-validation";
+import { CropPhoto, EmptyState, PageHeader, SectionTitle } from "./shared";
 
 interface Preview {
   id: string;
-  name: string;
+  file: File;
   url: string;
 }
-const steps = ["Select field", "Upload photos", "Review analysis"];
 
-export function Scanner() {
-  const { fields } = useDemo();
-  const [field, setField] = useState(fields[0].id);
+export function Scanner({
+  fields,
+  initialField,
+}: {
+  fields: SavedField[];
+  initialField?: string;
+}) {
+  const [field, setField] = useState(
+    fields.find(({ id }) => id === initialField)?.id ?? fields[0]?.id ?? "",
+  );
   const [date, setDate] = useState("");
-  const [step, setStep] = useState(0);
+  const [notes, setNotes] = useState("");
   const [photos, setPhotos] = useState<Preview[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
-  const [result, setResult] = useState<CropAnalysis>();
-  const [loading, setLoading] = useState(false);
   const [dragging, setDragging] = useState(false);
-  const input = useRef<HTMLInputElement>(null);
+  const picker = useRef<HTMLInputElement>(null);
+  const request = useRef<string | null>(null);
   const urls = useRef(new Set<string>());
-  const errorRef = useRef<HTMLDivElement>(null);
+
+  const [feedback, submit, pending] = useActionState(
+    async (previous: FarmFeedback, form: FormData) => {
+      request.current ??= crypto.randomUUID();
+      form.set("request", request.current);
+      for (const photo of photos) form.append("photos", photo.file);
+      return await saveObservation(previous, form);
+    },
+    {},
+  );
   useEffect(() => {
-    const activeUrls = urls.current;
+    const active = urls.current;
     return () => {
-      activeUrls.forEach((url) => URL.revokeObjectURL(url));
-      activeUrls.clear();
+      active.forEach((url) => URL.revokeObjectURL(url));
+      active.clear();
     };
   }, []);
 
   function add(files: FileList) {
-    const previews: Preview[] = [];
-    const invalid: string[] = [];
-    for (const file of Array.from(files)) {
-      const error = uploadError(file);
+    const added: Preview[] = [];
+    const rejected: string[] = [];
+    for (const file of files) {
+      const error = validatePhoto(file);
       if (error) {
-        invalid.push(error);
+        rejected.push(`${file.name}: ${error}`);
         continue;
+      }
+      if (photos.length + added.length >= MAX_PHOTOS) {
+        rejected.push("Choose up to three photos per observation.");
+        break;
       }
       const url = URL.createObjectURL(file);
       urls.current.add(url);
-      previews.push({ id: crypto.randomUUID(), name: file.name, url });
+      added.push({ id: crypto.randomUUID(), file, url });
     }
-    setPhotos((items) => [...items, ...previews]);
-    setErrors(invalid);
+    if (added.length) request.current = null;
+    setPhotos([...photos, ...added]);
+    setErrors(rejected);
   }
 
   function remove(photo: Preview) {
     URL.revokeObjectURL(photo.url);
     urls.current.delete(photo.url);
-    setPhotos((items) => items.filter(({ id }) => id !== photo.id));
-  }
-
-  async function analyze() {
-    setLoading(true);
-    setErrors([]);
-    try {
-      setResult(await analyzeExample(field, photos.length));
-      setStep(2);
-    } catch (error) {
-      setErrors([
-        error instanceof Error
-          ? error.message
-          : "Unable to load the sample analysis.",
-      ]);
-      errorRef.current?.focus();
-    } finally {
-      setLoading(false);
-    }
+    request.current = null;
+    setPhotos(photos.filter(({ id }) => id !== photo.id));
   }
 
   return (
     <>
       <PageHeader
         title="Crop Scanner"
-        description="Choose a field, preview crop photos, and explore an example analysis."
+        description="Save dated crop photos and notes to your private field history."
         icon={ScanLine}
       />
-      <MockDataNotice>
-        Simulation only. Your images stay in this tab. The analysis displays a
-        fixed example.
-      </MockDataNotice>
-      <ol className="card panel stepper" aria-label="Scanner progress">
-        {steps.map((label, index) => (
-          <li key={label} aria-current={index === step ? "step" : undefined}>
-            <span>{index < step ? <Check size={14} /> : index + 1}</span>
-            {label}
-          </li>
-        ))}
-      </ol>
-      {step === 0 && (
-        <section className="card panel stack">
-          <SectionTitle title="Observation details" />
-          <FieldSelect fields={fields} value={field} onChange={setField} />
-          <label>
-            Observation date (optional)
-            <input
-              type="date"
-              value={date}
-              onChange={(event) => setDate(event.target.value)}
-            />
-          </label>
-          <div className="actions">
-            <button className="button" onClick={() => setStep(1)}>
-              Continue to photos
-              <ArrowRight size={17} />
-            </button>
-          </div>
+      {!fields.length ? (
+        <section className="card panel">
+          <EmptyState title="No active fields">
+            Add or restore a field before saving photos.
+          </EmptyState>
+          <Link className="button" href="/fields">
+            Go to My Fields <ArrowRight size={17} />
+          </Link>
         </section>
-      )}
-      {step === 1 && (
+      ) : feedback.id ? (
         <section className="card panel stack">
-          <SectionTitle title={`Crop photographs (${photos.length})`} />
-          <input
-            ref={input}
-            type="file"
-            accept={acceptedImages.join(",")}
-            multiple
-            hidden
-            onChange={(event) => {
-              if (event.target.files) add(event.target.files);
-              event.target.value = "";
-            }}
-          />
-          <button
-            type="button"
-            className={`dropzone ${dragging ? "dragging" : ""}`}
-            disabled={loading}
-            onClick={() => input.current?.click()}
-            onDragOver={(event) => {
-              event.preventDefault();
-              if (!loading) setDragging(true);
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={(event) => {
-              event.preventDefault();
-              setDragging(false);
-              if (!loading) add(event.dataTransfer.files);
-            }}
+          <h2>Observation saved</h2>
+          <p className="insight" role="status">
+            {feedback.message}
+          </p>
+          <Link
+            className="text-link"
+            href={`/fields/${field}?tab=observations#${feedback.id}`}
           >
-            <CloudUpload size={33} />
-            <strong>Drop crop photos here or browse files</strong>
-            <small>JPG, PNG, or WebP · Up to 10 MB per image</small>
+            View saved observation <ArrowRight size={16} />
+          </Link>
+          <Link className="text-link" href={"/crop-doctor?observation=" + feedback.id}>
+            Open in Crop Doctor <ArrowRight size={16} />
+          </Link>
+          <button
+            className="button button-outline"
+            onClick={() => window.location.reload()}
+          >
+            Save another observation
           </button>
-          <div ref={errorRef} tabIndex={-1}>
-            {errors.length > 0 && (
-              <div className="message-error" role="alert">
-                {errors.map((error, index) => (
-                  <div key={`${error}-${index}`}>{error}</div>
-                ))}
-              </div>
-            )}
-          </div>
-          {photos.length > 0 && (
-            <div className="grid-three">
-              {photos.map((photo) => (
-                <div className="file-tile" key={photo.id}>
-                  <CropPhoto src={photo.url} alt={photo.name} />
-                  <button
-                    className="icon-button"
-                    disabled={loading}
-                    aria-label={`Remove ${photo.name}`}
-                    onClick={() => remove(photo)}
-                  >
-                    <X size={17} />
-                  </button>
-                  <small>{photo.name}</small>
+        </section>
+      ) : (
+        <form action={submit} className="stack">
+          <ol className="card panel stepper" aria-label="Observation workflow">
+            <li aria-current={!date ? "step" : undefined}>
+              <span>1</span> Select field
+            </li>
+            <li aria-current={date && !photos.length ? "step" : undefined}>
+              <span>2</span> Upload photos
+            </li>
+            <li aria-current={photos.length ? "step" : undefined}>
+              <span>3</span> Save observation
+            </li>
+          </ol>
+          <div className="grid-two">
+            <section className="card panel stack">
+              <SectionTitle title="Observation details" />
+              <label>
+                Field
+                <select
+                  name="field"
+                  aria-label="Field"
+                  value={field}
+                  disabled={pending}
+                  onChange={(event) => {
+                    request.current = null;
+                    setField(event.target.value);
+                  }}
+                >
+                  {fields.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name} · {item.crop_type}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Observation date
+                <input
+                  name="date"
+                  type="date"
+                  required
+                  value={date}
+                  disabled={pending}
+                  onChange={(event) => {
+                    request.current = null;
+                    setDate(event.target.value);
+                  }}
+                />
+              </label>
+              <label>
+                Farmer notes
+                <textarea
+                  name="notes"
+                  maxLength={2000}
+                  value={notes}
+                  disabled={pending}
+                  onChange={(event) => {
+                    request.current = null;
+                    setNotes(event.target.value);
+                  }}
+                />
+              </label>
+            </section>
+            <section className="card panel stack">
+              <SectionTitle title={`Crop photographs (${photos.length})`} />
+              <input
+                ref={picker}
+                type="file"
+                accept={Object.keys(photoExtensions).join(",")}
+                multiple
+                hidden
+                onChange={(event) => {
+                  if (event.target.files) add(event.target.files);
+                  event.target.value = "";
+                }}
+              />
+              <button
+                type="button"
+                className={`dropzone ${dragging ? "dragging" : ""}`}
+                disabled={pending}
+                onClick={() => picker.current?.click()}
+                onDragOver={(event) => {
+                  event.preventDefault();
+                  if (!pending) setDragging(true);
+                }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  setDragging(false);
+                  if (!pending) add(event.dataTransfer.files);
+                }}
+              >
+                <CloudUpload size={32} />
+                <strong>Drop photos or browse files</strong>
+                <small>JPEG, PNG, WebP · Up to three photos, 10 MB each</small>
+              </button>
+              {errors.length > 0 && (
+                <p className="message-error" role="alert">
+                  {errors.join(" ")}
+                </p>
+              )}
+              {!!photos.length && (
+                <div className="grid-three">
+                  {photos.map((photo) => (
+                    <div className="file-tile" key={photo.id}>
+                      <CropPhoto src={photo.url} alt={photo.file.name} />
+                      <button
+                        type="button"
+                        className="icon-button"
+                        disabled={pending}
+                        aria-label={`Remove ${photo.file.name}`}
+                        onClick={() => remove(photo)}
+                      >
+                        <X size={17} />
+                      </button>
+                      <small>{photo.file.name}</small>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </section>
+          </div>
+          {feedback.error && (
+            <p className="message-error" role="alert">
+              {feedback.error}
+            </p>
           )}
-          {loading && <LoadingSkeleton label="Loading sample analysis…" />}
           <div className="actions">
-            <button
-              className="button button-outline"
-              disabled={loading}
-              onClick={() => setStep(0)}
-            >
-              <ArrowLeft size={17} />
-              Back
-            </button>
             <button
               className="button"
-              disabled={loading || !photos.length}
-              onClick={analyze}
+              disabled={pending || !photos.length || !date}
             >
-              <Sparkles size={17} />
-              Run demo analysis
+              {pending ? "Saving photos…" : "Save observation"}
             </button>
           </div>
-        </section>
-      )}
-      {step === 2 && result && (
-        <section className="card panel stack">
-          <SectionTitle title="Sample analysis" />
-          <div className="insight" role="status">
-            <Check size={18} />
-            <div>
-              <strong>Example loaded</strong>
-              <p>
-                {fields.find((item) => item.id === field)?.name}
-                {date ? ` · ${date}` : ""} · {photos.length} local photo
-                previews
-              </p>
-            </div>
-          </div>
-          <div className="grid-three">
-            {[
-              ["Crop identity", result.crop],
-              ["Estimated growth stage", result.stage],
-              ["Visible symptoms", result.symptoms],
-              ["Image quality", result.quality],
-              ["Uncertainty", result.uncertainty],
-              ["Additional observations", result.followUp],
-            ].map(([label, value]) => (
-              <div className="metric" key={label}>
-                <small>{label}</small>
-                <strong>{value}</strong>
-              </div>
-            ))}
-          </div>
-          <div className="actions">
-            <button
-              className="button button-outline"
-              onClick={() => setStep(1)}
-            >
-              <ArrowLeft size={17} />
-              Edit photos
-            </button>
-            <Link className="button" href={`/comparison?field=${field}`}>
-              Compare Growth
-            </Link>
-          </div>
-        </section>
+        </form>
       )}
     </>
   );

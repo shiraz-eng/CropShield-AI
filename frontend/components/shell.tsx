@@ -95,16 +95,24 @@ export function AppSidebar({
       <div className="sidebar-foot">
         <ShieldCheck size={20} />
         <div>
-          <strong>Demo workspace</strong>
-          <small>Illustrative wheat records</small>
+          <strong>Private workspace</strong>
+          <small>Your fields and observations</small>
         </div>
       </div>
     </>
   );
 }
 
-export function AppHeader({ path }: { path: string }) {
-  const { fields, notifications, setNotifications, user } = useDemo();
+type SearchField = { id: string; name: string };
+
+export function AppHeader({
+  path,
+  fields,
+}: {
+  path: string;
+  fields: SearchField[];
+}) {
+  const { notifications, dismissNotification, user } = useDemo();
   const [drawer, setDrawer] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -209,11 +217,7 @@ export function AppHeader({ path }: { path: string }) {
                   <button
                     className="icon-button"
                     aria-label={`Dismiss ${item.title}`}
-                    onClick={() =>
-                      setNotifications((items) =>
-                        items.filter(({ id }) => id !== item.id),
-                      )
-                    }
+                    onClick={() => dismissNotification(item.id)}
                   >
                     <X size={17} />
                   </button>
@@ -249,7 +253,13 @@ export function AppHeader({ path }: { path: string }) {
   );
 }
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  fields,
+}: {
+  children: ReactNode;
+  fields: SearchField[];
+}) {
   const path = usePathname();
   return (
     <div className="app-shell">
@@ -260,7 +270,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <AppSidebar path={path} />
       </aside>
       <div className="workspace">
-        <AppHeader path={path} />
+        <AppHeader path={path} fields={fields} />
         <main id="main-content" tabIndex={-1} className="workspace-content">
           {children}
         </main>

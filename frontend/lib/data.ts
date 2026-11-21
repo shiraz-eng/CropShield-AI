@@ -26,14 +26,6 @@ export interface CropObservation {
   photo: string;
   status: "clear" | "concerns" | "poor" | "unavailable";
 }
-export interface CropAnalysis {
-  crop: "Wheat";
-  stage: Stage;
-  symptoms: string;
-  quality: string;
-  uncertainty: string;
-  followUp: string;
-}
 export interface CropComparison {
   id: string;
   fieldId: string;
@@ -326,26 +318,7 @@ export const forecasts: Record<string, WeatherForecast[]> = Object.fromEntries(
     }),
   ]),
 );
-export const sampleAnalysis: CropAnalysis = {
-  crop: "Wheat",
-  stage: "Tillering",
-  symptoms:
-    "The example shows green foliage with no prominent visible concerns.",
-  quality: "Adequate in the example",
-  uncertainty: "Angle and lighting can hide symptoms.",
-  followUp:
-    "Capture a wide view and a close-up from the same location in 15–25 days.",
-};
 export const reports: Report[] = [
-  {
-    id: "growth",
-    type: "Growth Comparison Report",
-    fieldId: "north",
-    date: "2025-03-21",
-    interval: 20,
-    summary:
-      "The example pair illustrates a transition from tillering to stem elongation. Differences in framing limit comparison.",
-  },
   {
     id: "health",
     type: "Crop Health Report",
@@ -377,19 +350,3 @@ export function formatDate(date: string) {
 export function intervalDays(before: string, after: string) {
   return (Date.parse(after) - Date.parse(before)) / 86_400_000;
 }
-export const initialComparisons: CropComparison[] = [
-  {
-    id: "n1-n3",
-    fieldId: "north",
-    before: observations[0],
-    after: observations[2],
-    days: 20,
-  },
-  {
-    id: "e1-e2",
-    fieldId: "east",
-    before: observations[4],
-    after: observations[5],
-    days: 20,
-  },
-];

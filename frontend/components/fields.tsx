@@ -1,311 +1,463 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeftRight, CloudSun, Pencil, Plus, Sprout } from "lucide-react";
-import { useState, type FormEvent } from "react";
 import {
-  fieldObservations,
-  currentConditions,
-  formatDate,
-  photos,
-  stages,
-  type Field,
-} from "@/lib/data";
-import { useDemo } from "@/lib/state";
-import { convertTemp, GrowthTimelineChart } from "./charts";
-import {
-  CropPhoto,
-  CropStageBadge,
-  EmptyState,
-  FieldCard,
-  MockDataNotice,
-  ObservationCard,
-  PageHeader,
-  SectionTitle,
-} from "./shared";
+  Archive,
+  ArrowRight,
+  CalendarDays,
+  MapPin,
+  Pencil,
+  Plus,
+  Sprout,
+} from "lucide-react";
+import { useActionState, useState, useTransition } from "react";
+import { formatDate, intervalDays } from "@/lib/data";
+import { archiveField, saveField } from "@/lib/farm-actions";
+import type {
+  FarmFeedback,
+  SavedField,
+  SavedObservation,
+} from "@/lib/farm-types";
+import { CropPhoto, EmptyState, PageHeader, SectionTitle } from "./shared";
 import { Dialog } from "./ui/dialog";
 
-function FieldEditor({ field }: { field?: Field }) {
-  const { setFields } = useDemo();
+function FieldForm({
+  field,
+  onSaved,
+}: {
+  field?: SavedField;
+  onSaved: (message: string) => void;
+}) {
+  const [state, submit, pending] = useActionState(
+    async (previous: FarmFeedback, form: FormData) => {
+      const result = await saveField(field?.id ?? null, previous, form);
+      if (result.message) onSaved(result.message);
+      return result;
+    },
+    {},
+  );
+  return (
+    <form action={submit} className="stack">
+      <label>
+        Field name
+        <input
+          name="name"
+          required
+          maxLength={100}
+          defaultValue={field?.name}
+        />
+      </label>
+      <div className="grid-two">
+        <label>
+          Crop type
+          <input
+            name="crop_type"
+            required
+            maxLength={60}
+            defaultValue={field?.crop_type ?? "Wheat"}
+          />
+        </label>
+        <label>
+          Variety
+          <input
+            name="crop_variety"
+            maxLength={100}
+            defaultValue={field?.crop_variety}
+          />
+        </label>
+        <label>
+          Planting date
+          <input
+            name="planting_date"
+            type="date"
+            required
+            defaultValue={field?.planting_date}
+          />
+        </label>
+        <label>
+          Area
+          <input
+            name="area"
+            type="number"
+            min="0.01"
+            max="1000000000"
+            step="0.01"
+            required
+            defaultValue={field?.area}
+          />
+        </label>
+        <label>
+          Area unit
+          <select
+            name="area_unit"
+            aria-label="Area unit"
+            defaultValue={field?.area_unit ?? "acres"}
+          >
+            <option value="acres">Acres</option>
+            <option value="hectares">Hectares</option>
+          </select>
+        </label>
+        <label>
+          Country
+          <input
+            name="country"
+            required
+            maxLength={100}
+            defaultValue={field?.country}
+          />
+        </label>
+        <label>
+          Region
+          <input name="region" maxLength={100} defaultValue={field?.region} />
+        </label>
+        <label>
+          District
+          <input
+            name="district"
+            maxLength={100}
+            defaultValue={field?.district}
+          />
+        </label>
+        <label>
+          Latitude
+          <input
+            name="latitude"
+            type="number"
+            min="-90"
+            max="90"
+            step="any"
+            defaultValue={field?.latitude ?? undefined}
+          />
+        </label>
+        <label>
+          Longitude
+          <input
+            name="longitude"
+            type="number"
+            min="-180"
+            max="180"
+            step="any"
+            defaultValue={field?.longitude ?? undefined}
+          />
+        </label>
+      </div>
+      <label>
+        Notes
+        <textarea name="notes" maxLength={2000} defaultValue={field?.notes} />
+      </label>
+      {state.error && (
+        <p className="message-error" role="alert">
+          {state.error}
+        </p>
+      )}
+      <button className="button" disabled={pending}>
+        {pending ? "Saving…" : "Save field"}
+      </button>
+    </form>
+  );
+}
+
+function FieldEditor({
+  field,
+  onSaved,
+}: {
+  field?: SavedField;
+  onSaved: (message: string) => void;
+}) {
   const [open, setOpen] = useState(false);
-  function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const name = String(form.get("name")).trim();
-    const location = String(form.get("location")).trim();
-    const acres = Number(form.get("acres"));
-    if (!name || !location || !Number.isFinite(acres) || acres <= 0) return;
-    const record: Field = {
-      id: field?.id ?? crypto.randomUUID(),
-      name,
-      location,
-      acres,
-      crop: "Wheat",
-      photo: field?.photo ?? photos.green,
-    };
-    setFields((items) =>
-      field
-        ? items.map((item) => (item.id === field.id ? record : item))
-        : [...items, record],
-    );
-    setOpen(false);
-  }
   return (
     <Dialog
       open={open}
       onOpenChange={setOpen}
       title={field ? "Edit field" : "Add field"}
-      description="Field details are kept for this app session."
+      description="Enter the crop, planting date, and location."
       trigger={
         <button className={field ? "button button-outline" : "button"}>
-          {field ? <Pencil size={17} /> : <Plus size={17} />}
+          {field ? <Pencil size={16} /> : <Plus size={16} />}
           {field ? "Edit field" : "Add field"}
         </button>
       }
     >
-      <form className="stack" onSubmit={submit}>
-        <label>
-          Field name
-          <input
-            name="name"
-            required
-            pattern=".*\S.*"
-            maxLength={60}
-            defaultValue={field?.name}
-          />
-        </label>
-        <label>
-          Location
-          <input
-            name="location"
-            required
-            pattern=".*\S.*"
-            maxLength={60}
-            defaultValue={field?.location}
-          />
-        </label>
-        <label>
-          Area (acres)
-          <input
-            name="acres"
-            required
-            type="number"
-            min="0.01"
-            max="100000"
-            step="0.01"
-            defaultValue={field?.acres}
-          />
-        </label>
-        <button className="button" type="submit">
-          Save field
-        </button>
-      </form>
+      <FieldForm
+        field={field}
+        onSaved={(message) => {
+          setOpen(false);
+          onSaved(message);
+        }}
+      />
     </Dialog>
   );
 }
 
-export function Fields() {
-  const { fields } = useDemo();
-  const [query, setQuery] = useState("");
-  const [stage, setStage] = useState("");
-  const filtered = fields.filter(
+export function SavedFieldCard({
+  field,
+  image,
+  lastDate,
+}: {
+  field: SavedField;
+  image?: string | null;
+  lastDate?: string;
+}) {
+  return (
+    <article className="card field-card">
+      <div className="field-photo">
+        {image ? (
+          <CropPhoto src={image} alt={`Saved photo of ${field.name}`} />
+        ) : (
+          <div className="crop-photo field-placeholder">
+            <Sprout size={28} />
+          </div>
+        )}
+        <span className="photo-chip">{field.crop_type}</span>
+      </div>
+      <div className="field-info">
+        <h3>{field.name}</h3>
+        <p>
+          <MapPin size={14} />
+          {[field.district, field.region, field.country]
+            .filter(Boolean)
+            .join(", ")}{" "}
+          · {field.area} {field.area_unit}
+        </p>
+        <p>
+          <CalendarDays size={14} />
+          Planted {formatDate(field.planting_date)}
+        </p>
+        {lastDate && <p>Last observed {formatDate(lastDate)}</p>}
+        <div className="field-bottom">
+          <span className="badge">
+            {field.is_archived ? "Archived" : "Active"}
+          </span>
+          <Link
+            href={`/fields/${field.id}`}
+            className="round-link"
+            aria-label={`View details for ${field.name}`}
+          >
+            <ArrowRight size={16} />
+          </Link>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+export function Fields({ fields }: { fields: SavedField[] }) {
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("active");
+  const [message, setMessage] = useState("");
+  const results = fields.filter(
     (field) =>
-      `${field.name} ${field.location}`
+      (filter === "all" || field.is_archived === (filter === "archived")) &&
+      [
+        field.name,
+        field.crop_type,
+        field.crop_variety,
+        field.country,
+        field.region,
+        field.district,
+      ]
+        .join(" ")
         .toLowerCase()
-        .includes(query.trim().toLowerCase()) &&
-      (!stage || fieldObservations(field.id).at(-1)?.stage === stage),
+        .includes(search.trim().toLowerCase()),
   );
   return (
     <>
       <PageHeader
         title="My Fields"
-        description="Manage wheat fields and explore their observation history."
+        description="Manage your fields and explore their observation history."
         icon={Sprout}
-        action={<FieldEditor />}
+        action={<FieldEditor onSaved={setMessage} />}
       />
-      <MockDataNotice>
-        Sample fields and observations. Field edits last for this app session.
-      </MockDataNotice>
+      {message && (
+        <p className="insight" role="status">
+          {message}
+        </p>
+      )}
       <section className="card panel filter-bar" aria-label="Field filters">
         <label>
           Search fields
           <input
             type="search"
-            placeholder="Field name or location"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Field name, crop, or location"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
           />
         </label>
         <label>
-          Growth stage
+          Status
           <select
-            aria-label="Growth stage"
-            value={stage}
-            onChange={(event) => setStage(event.target.value)}
+            aria-label="Status"
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
           >
-            <option value="">All stages</option>
-            {stages.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
+            <option value="active">Active fields</option>
+            <option value="archived">Archived fields</option>
+            <option value="all">All fields</option>
           </select>
         </label>
       </section>
-      {filtered.length ? (
+      {results.length ? (
         <div className="fields-grid all-fields">
-          {filtered.map((field) => (
-            <FieldCard key={field.id} field={field} />
+          {results.map((field) => (
+            <SavedFieldCard key={field.id} field={field} />
           ))}
         </div>
       ) : (
-        <EmptyState title="No matching fields">
-          Try a different search or stage.
+        <EmptyState
+          title={fields.length ? "No matching fields" : "Add your first field"}
+        >
+          {fields.length
+            ? "Change the search or status filter."
+            : "Enter planting and location details to begin recording observations."}
         </EmptyState>
       )}
     </>
   );
 }
 
-const fieldTabs = [
+function ObservationTimeline({
+  observations,
+}: {
+  observations: SavedObservation[];
+}) {
+  if (!observations.length)
+    return (
+      <EmptyState title="No observations yet">
+        Save photos and notes in Crop Scanner to start the timeline.
+      </EmptyState>
+    );
+  return (
+    <ol className="stack dated-observations">
+      {observations.map((entry, index) => {
+        const previous = observations[index + 1];
+        return (
+          <li key={entry.id} id={entry.id} className="card panel stack">
+            <div>
+              <h3>
+                <time dateTime={entry.observed_at}>
+                  {formatDate(entry.observed_at)}
+                </time>
+              </h3>
+              {previous && (
+                <small>
+                  {intervalDays(previous.observed_at, entry.observed_at)} days
+                  since the previous observation
+                </small>
+              )}
+            </div>
+            {entry.notes && <p className="farmer-notes">{entry.notes}</p>}
+            <div className="grid-three">
+              {entry.images.map((image) => (
+                <figure key={image.id} className="observation">
+                  {image.url ? (
+                    <a href={image.url} target="_blank" rel="noreferrer">
+                      <CropPhoto
+                        src={image.url}
+                        alt={image.original_filename}
+                      />
+                    </a>
+                  ) : (
+                    <p className="panel">
+                      Photo unavailable. Refresh to retry.
+                    </p>
+                  )}
+                  <figcaption>
+                    {image.original_filename} ·{" "}
+                    {Math.ceil(image.file_size / 1024)} KB
+                  </figcaption>
+                </figure>
+              ))}
+            </div>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+const tabs = [
   "Overview",
   "Timeline",
   "Observations",
   "Comparisons",
   "Weather",
 ] as const;
-
 export function FieldDetail({
-  id,
+  field,
+  observations,
   initialTab,
 }: {
-  id: string;
+  field: SavedField;
+  observations: SavedObservation[];
   initialTab?: string;
 }) {
-  const { fields, comparisons, user } = useDemo();
-  const [tab, setTab] = useState<(typeof fieldTabs)[number]>(
-    initialTab === "timeline" ? "Timeline" : "Overview",
+  const [tab, setTab] = useState<(typeof tabs)[number]>(
+    initialTab === "timeline"
+      ? "Timeline"
+      : initialTab === "observations"
+        ? "Observations"
+        : "Overview",
   );
-  const field = fields.find((item) => item.id === id);
-  if (!field)
-    return (
-      <>
-        <PageHeader
-          title="Field unavailable"
-          description="This field is missing from the current demo session."
-          icon={Sprout}
-        />
-        <Link className="text-link" href="/fields">
-          Back to fields
-        </Link>
-      </>
-    );
-  const history = fieldObservations(id);
-  const last = history.at(-1);
-  const saved = comparisons.filter((item) => item.fieldId === id);
-  const forecast = currentConditions[id];
-  const timeline = (
-    <section className="card panel">
-      <SectionTitle title="Crop timeline" />
-      {history.length ? (
-        <>
-          <p>Illustrative categorical stages by observation date.</p>
-          <GrowthTimelineChart observations={history} />
-        </>
-      ) : (
-        <EmptyState title="No observations">
-          A timeline needs dated observations.
-        </EmptyState>
-      )}
-    </section>
-  );
-  const gallery = (
-    <section className="card panel">
-      <SectionTitle title="Observation gallery" />
-      {history.length ? (
-        <div className="grid-two">
-          {history.map((item) => (
-            <ObservationCard key={item.id} observation={item} />
-          ))}
-        </div>
-      ) : (
-        <EmptyState title="No photos yet">
-          Use the Crop Scanner to try a local photo preview.
-        </EmptyState>
-      )}
-    </section>
-  );
-  const comparisonHistory = (
-    <section className="card panel">
-      <SectionTitle
-        title="Comparison history"
-        href={`/comparison?field=${id}`}
-        link="Compare"
-      />
-      {saved.length ? (
-        saved.map((item) => (
-          <div className="list-row" key={item.id}>
-            <span className="soft-icon">
-              <ArrowLeftRight size={17} />
-            </span>
-            <div className="grow">
-              <strong>
-                {formatDate(item.before.date)} → {formatDate(item.after.date)}
-              </strong>
-              <small>
-                {item.before.stage} → {item.after.stage}
-              </small>
-            </div>
-            <span className="badge">{item.days} days</span>
-          </div>
-        ))
-      ) : (
-        <EmptyState title="No saved comparisons">
-          Save a sample comparison to include it here.
-        </EmptyState>
-      )}
-    </section>
-  );
-  const weather = (
-    <section className="card panel">
-      <SectionTitle
-        title="Field weather"
-        href={`/weather?field=${id}`}
-        link="Forecast"
-      />
-      {forecast ? (
-        <div className="weather-now">
-          <CloudSun size={36} />
-          <div>
-            <strong>
-              {convertTemp(forecast.temperature, user.units)}°{user.units}
-            </strong>
-            <p>{forecast.condition} · Sample conditions</p>
-          </div>
-        </div>
-      ) : (
-        <p>A sample forecast is unavailable for this field.</p>
-      )}
-    </section>
-  );
+  const [feedback, setFeedback] = useState<FarmFeedback>({});
+  const [pending, start] = useTransition();
+  const cover = observations[0]?.images.find((image) => image.url)?.url;
   return (
     <>
       <PageHeader
         title={field.name}
-        description={`Wheat · ${field.acres} acres · ${field.location}`}
+        description={`${field.crop_type} · ${field.area} ${field.area_unit} · ${field.country}`}
         icon={Sprout}
-        action={<FieldEditor field={field} />}
+        action={
+          <div className="actions">
+            <FieldEditor
+              field={field}
+              onSaved={(message) => setFeedback({ message })}
+            />
+            <button
+              disabled={pending}
+              className="button button-outline"
+              onClick={() =>
+                start(async () =>
+                  setFeedback(await archiveField(field.id, !field.is_archived)),
+                )
+              }
+            >
+              <Archive size={16} />
+              {pending
+                ? "Updating…"
+                : field.is_archived
+                  ? "Restore field"
+                  : "Archive field"}
+            </button>
+          </div>
+        }
       />
-      <MockDataNotice>
-        Illustrative field history. Changes last for this app session.
-      </MockDataNotice>
-      <div className="card field-cover">
-        <CropPhoto src={field.photo} alt="Illustrative wheat crop" />
-      </div>
+      {feedback.error && (
+        <p className="message-error" role="alert">
+          {feedback.error}
+        </p>
+      )}
+      {feedback.message && (
+        <p className="insight" role="status">
+          {feedback.message}
+        </p>
+      )}
+      {field.is_archived && (
+        <p className="message-caution">
+          This field is archived. Existing observations remain available.
+        </p>
+      )}
+      {cover && (
+        <div className="card field-cover">
+          <CropPhoto src={cover} alt={`Latest photo of ${field.name}`} />
+        </div>
+      )}
       <nav className="tabs" aria-label="Field views">
-        {fieldTabs.map((item) => (
+        {tabs.map((item) => (
           <button
-            className="tab"
             key={item}
-            aria-pressed={item === tab}
+            className="tab"
+            aria-pressed={tab === item}
             onClick={() => setTab(item)}
           >
             {item}
@@ -313,39 +465,69 @@ export function FieldDetail({
         ))}
       </nav>
       {tab === "Overview" && (
-        <>
-          <section className="card panel grid-three">
+        <section className="card panel stack">
+          <SectionTitle title="Field details" />
+          <div className="grid-three">
             <div className="metric">
-              <small>Latest stage</small>
-              {last ? (
-                <CropStageBadge stage={last.stage} />
-              ) : (
-                <strong>Awaiting observation</strong>
-              )}
+              <small>Planting date</small>
+              <strong>{formatDate(field.planting_date)}</strong>
+            </div>
+            <div className="metric">
+              <small>Latest observation</small>
+              <strong>
+                {observations.length
+                  ? formatDate(observations[0].observed_at)
+                  : "No observations"}
+              </strong>
             </div>
             <div className="metric">
               <small>Observations</small>
-              <strong>{history.length}</strong>
+              <strong>{observations.length}</strong>
             </div>
             <div className="metric">
-              <small>Saved comparisons</small>
-              <strong>{saved.length}</strong>
+              <small>Crop variety</small>
+              <strong>{field.crop_variety || "Unspecified"}</strong>
             </div>
-          </section>
-          <div className="grid-two">
-            {timeline}
-            {weather}
+            <div className="metric">
+              <small>Location</small>
+              <strong>
+                {[field.district, field.region, field.country]
+                  .filter(Boolean)
+                  .join(", ")}
+              </strong>
+            </div>
+            <div className="metric">
+              <small>Coordinates</small>
+              <strong>
+                {field.latitude === null
+                  ? "Unspecified"
+                  : `${field.latitude}, ${field.longitude}`}
+              </strong>
+            </div>
           </div>
-          <div className="grid-two">
-            {gallery}
-            {comparisonHistory}
-          </div>
-        </>
+          {field.notes && <p className="farmer-notes">{field.notes}</p>}
+          {!field.is_archived && (
+            <div className="actions">
+              <Link className="button" href={`/scanner?field=${field.id}`}>
+                Save an observation
+              </Link>
+            </div>
+          )}
+        </section>
       )}
-      {tab === "Timeline" && timeline}
-      {tab === "Observations" && gallery}
-      {tab === "Comparisons" && comparisonHistory}
-      {tab === "Weather" && weather}
+      {(tab === "Timeline" || tab === "Observations") && (
+        <ObservationTimeline observations={observations} />
+      )}
+      {tab === "Comparisons" && (
+        <EmptyState title="Field comparisons are unavailable">
+          The comparison page currently uses demonstration data.
+        </EmptyState>
+      )}
+      {tab === "Weather" && (
+        <EmptyState title="Field weather is unavailable">
+          Weather Guardian currently uses a sample forecast.
+        </EmptyState>
+      )}
     </>
   );
 }

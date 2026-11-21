@@ -1,179 +1,101 @@
 "use client";
 
 import Link from "next/link";
-import { ClipboardList, Printer } from "lucide-react";
-import { useState } from "react";
-import { formatDate, reports as fixtures, type Report } from "@/lib/data";
-import { useDemo } from "@/lib/state";
-import { EmptyState, MockDataNotice, PageHeader, SectionTitle } from "./shared";
+import { ClipboardList, Download } from "lucide-react";
+import type { SavedField, SavedObservation } from "@/lib/farm-types";
+import type { SavedComparison } from "@/lib/farm-data";
+import { EmptyState, PageHeader, SectionTitle } from "./shared";
 
-const categories = [
-  "Crop Health Report",
-  "Growth Comparison Report",
-  "Weather Risk Summary",
-] as const;
-
-function useReports() {
-  const { fields, comparisons } = useDemo();
-  const saved: Report[] = comparisons
-    .filter(({ id }) => id !== "n1-n3")
-    .map(({ id, fieldId, days, before, after }) => ({
-      id,
-      fieldId,
-      date: after.date,
-      interval: days,
-      type: "Growth Comparison Report",
-      summary: `This illustrative pair spans ${days} days and shows recorded stages of ${before.stage.toLowerCase()} and ${after.stage.toLowerCase()}.`,
-    }));
-  return {
-    reports: [...fixtures, ...saved],
-    fieldName: (id: string) =>
-      fields.find((field) => field.id === id)?.name ?? "Field",
-  };
+function Row({ title, detail, href }: { title: string; detail: string; href: string }) {
+  return (
+    <div className="list-row report-row">
+      <span className="soft-icon">
+        <ClipboardList size={16} />
+      </span>
+      <div className="grow">
+        <strong>{title}</strong>
+        <small>{detail}</small>
+      </div>
+      <a className="button button-outline" href={href} aria-label={`Download PDF: ${title}, ${detail}`}>
+        <Download size={15} /> PDF
+      </a>
+    </div>
+  );
 }
 
-export function Reports() {
-  const { reports, fieldName } = useReports();
-  const [query, setQuery] = useState("");
-  const [type, setType] = useState("");
-  const filtered = reports.filter(
-    (report) =>
-      (!type || report.type === type) &&
-      `${report.type} ${fieldName(report.fieldId)}`
-        .toLowerCase()
-        .includes(query.trim().toLowerCase()),
-  );
+export function Reports({
+  fields,
+  analyzed,
+  comparisons,
+}: {
+  fields: SavedField[];
+  analyzed: SavedObservation[];
+  comparisons: SavedComparison[];
+}) {
+  const fieldName = (id: string | null) => fields.find((field) => field.id === id)?.name ?? "Field";
+  const located = fields.filter((field) => !field.is_archived && field.latitude != null);
   return (
     <>
       <PageHeader
         title="Reports"
-        description="Review illustrative crop health, growth, and weather summaries."
+        description="Download PDF reports built from your saved observations, analyses, comparisons, and forecasts."
         icon={ClipboardList}
       />
-      <MockDataNotice>
-        Reports contain sample scenarios and comparisons saved in this session.
-      </MockDataNotice>
-      <div className="card panel filter-bar">
-        <label>
-          Search reports
-          <input
-            type="search"
-            placeholder="Report or field name"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-          />
-        </label>
-        <label>
-          Report category
-          <select
-            aria-label="Report category"
-            value={type}
-            onChange={(event) => setType(event.target.value)}
-          >
-            <option value="">All categories</option>
-            {categories.map((item) => (
-              <option key={item}>{item}</option>
-            ))}
-          </select>
-        </label>
-      </div>
       <section className="card panel">
-        <SectionTitle title="Report library" />
-        {filtered.length ? (
-          filtered.map((report) => (
-            <div className="list-row report-row" key={report.id}>
-              <span className="soft-icon">
-                <ClipboardList size={16} />
-              </span>
-              <div className="grow">
-                <strong>{report.type}</strong>
-                <small>
-                  {fieldName(report.fieldId)} · {formatDate(report.date)}
-                  {report.interval ? ` · ${report.interval} days` : ""}
-                </small>
-              </div>
-              <Link
-                className="button button-outline"
-                href={`/reports/${report.id}`}
-                aria-label={`View ${report.type} for ${fieldName(report.fieldId)}`}
-              >
-                View
-              </Link>
-            </div>
+        <SectionTitle title="Crop Health Reports" />
+        {analyzed.length ? (
+          analyzed.map((item) => (
+            <Row
+              key={item.id}
+              title={fieldName(item.field_id)}
+              detail={`Observation ${item.observed_at} · ${item.images.length} photo(s)`}
+              href={`/api/reports/health/${item.id}`}
+            />
           ))
         ) : (
-          <EmptyState title="No matching reports">
-            Try a different category or search term.
+          <EmptyState title="No analyzed observations">
+            <Link href="/crop-doctor">Analyze a saved observation in Crop Doctor first.</Link>
           </EmptyState>
         )}
       </section>
-    </>
-  );
-}
-
-export function ReportDetail({ id }: { id: string }) {
-  const { reports, fieldName } = useReports();
-  const report = reports.find((item) => item.id === id);
-  if (!report)
-    return (
-      <>
-        <PageHeader
-          title="Report unavailable"
-          description="This report is missing from the current app session."
-          icon={ClipboardList}
-        />
-        <Link className="text-link" href="/reports">
-          Back to reports
-        </Link>
-      </>
-    );
-  return (
-    <>
-      <div className="no-print">
-        <Link className="text-link" href="/reports">
-          Back to reports
-        </Link>
-      </div>
-      <PageHeader
-        title={report.type}
-        description={fieldName(report.fieldId)}
-        icon={ClipboardList}
-        action={
-          <button
-            className="button button-outline no-print"
-            onClick={() => window.print()}
-          >
-            <Printer size={17} />
-            Print report
-          </button>
-        }
-      />
-      <MockDataNotice>Illustrative Phase 1 report.</MockDataNotice>
-      <article className="card panel stack print-report">
-        <div className="grid-two">
-          <div className="metric">
-            <small>Report date</small>
-            <strong>{formatDate(report.date)}</strong>
-          </div>
-          <div className="metric">
-            <small>Observation interval</small>
-            <strong>
-              {report.interval ? `${report.interval} days` : "Not applicable"}
-            </strong>
-          </div>
-        </div>
-        <div>
-          <h2>Summary</h2>
-          <p>{report.summary}</p>
-        </div>
-        <div className="report-section">
-          <h3>Review notes</h3>
-          <p>
-            Validate field conditions during the next inspection. This report
-            illustrates the format for a future field assessment.
-          </p>
-        </div>
-      </article>
+      <section className="card panel">
+        <SectionTitle title="Growth Comparison Reports" />
+        {comparisons.length ? (
+          comparisons.map((item) => (
+            <Row
+              key={item.id}
+              title={item.comparison_mode === "verified_historical" ? fieldName(item.field_id) : "Illustrative samples"}
+              detail={
+                item.comparison_mode === "verified_historical"
+                  ? `${item.interval_days} day interval · ${new Date(item.created_at).toLocaleDateString()}`
+                  : `Not field history · ${new Date(item.created_at).toLocaleDateString()}`
+              }
+              href={`/api/reports/comparison/${item.id}`}
+            />
+          ))
+        ) : (
+          <EmptyState title="No saved comparisons">
+            <Link href="/comparison">Run a comparison in Crop Memory first.</Link>
+          </EmptyState>
+        )}
+      </section>
+      <section className="card panel">
+        <SectionTitle title="Weather Risk Summaries" />
+        {located.length ? (
+          located.map((field) => (
+            <Row
+              key={field.id}
+              title={field.name}
+              detail="Live Open-Meteo 7-day forecast, generated when downloaded"
+              href={`/api/reports/weather/${field.id}`}
+            />
+          ))
+        ) : (
+          <EmptyState title="No fields with coordinates">
+            <Link href="/fields">Add latitude and longitude to a field.</Link>
+          </EmptyState>
+        )}
+      </section>
     </>
   );
 }

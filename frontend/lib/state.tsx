@@ -8,55 +8,33 @@ import {
   type ReactNode,
   type SetStateAction,
 } from "react";
-import {
-  farmer,
-  initialComparisons,
-  initialFields,
-  initialNotifications,
-  initialReminders,
-  type CropComparison,
-  type Field,
-  type Notification,
-  type Reminder,
-  type User,
-} from "./data";
+import type { Notification, User } from "./data";
 
-interface DemoState {
-  fields: Field[];
-  setFields: Dispatch<SetStateAction<Field[]>>;
-  reminders: Reminder[];
-  setReminders: Dispatch<SetStateAction<Reminder[]>>;
+interface AccountState {
   notifications: Notification[];
-  setNotifications: Dispatch<SetStateAction<Notification[]>>;
-  comparisons: CropComparison[];
-  setComparisons: Dispatch<SetStateAction<CropComparison[]>>;
+  dismissNotification: (id: string) => void;
   user: User;
   setUser: Dispatch<SetStateAction<User>>;
 }
 
-const Context = createContext<DemoState | null>(null);
+const Context = createContext<AccountState | null>(null);
 
-export function DemoProvider({ children }: { children: ReactNode }) {
-  const [fields, setFields] = useState(initialFields);
-  const [reminders, setReminders] = useState(initialReminders);
-  const [notifications, setNotifications] = useState(initialNotifications);
-  const [comparisons, setComparisons] = useState(initialComparisons);
-  const [user, setUser] = useState(farmer);
+export function DemoProvider({
+  children,
+  account,
+  notices,
+}: {
+  children: ReactNode;
+  account: User;
+  notices: Notification[];
+}) {
+  // Derive from server props so completing a reminder updates the count without a reload.
+  const [dismissed, setDismissed] = useState<string[]>([]);
+  const notifications = notices.filter(({ id }) => !dismissed.includes(id));
+  const dismissNotification = (id: string) => setDismissed((ids) => [...ids, id]);
+  const [user, setUser] = useState(account);
   return (
-    <Context.Provider
-      value={{
-        fields,
-        setFields,
-        reminders,
-        setReminders,
-        notifications,
-        setNotifications,
-        comparisons,
-        setComparisons,
-        user,
-        setUser,
-      }}
-    >
+    <Context.Provider value={{ notifications, dismissNotification, user, setUser }}>
       {children}
     </Context.Provider>
   );
@@ -64,6 +42,6 @@ export function DemoProvider({ children }: { children: ReactNode }) {
 
 export function useDemo() {
   const context = useContext(Context);
-  if (!context) throw new Error("The demo provider is missing.");
+  if (!context) throw new Error("The account provider is missing.");
   return context;
 }

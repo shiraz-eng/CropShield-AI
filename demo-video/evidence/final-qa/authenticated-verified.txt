@@ -1,0 +1,10 @@
+PASS two labeled confirmed QA accounts provisioned
+PASS hosted login, dashboard and session reload
+PASS saved field reopens after reload
+PASS Scanner rejected unsupported file
+PASS uploaded photo persists and renders after reload
+PASS cross-account analysis HTTP 404
+PASS visitor blocked at field page, REST data and private photo storage
+BLOCKED forecast view did not render live data
+BLOCKED Gemini UI: Crop analysis is unavailable. Try again later.
+PASS logout and subsequent protected-route redirect

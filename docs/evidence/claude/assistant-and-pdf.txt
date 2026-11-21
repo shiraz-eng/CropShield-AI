@@ -1,0 +1,13 @@
+TEST FIXTURE CONTEXT (synthetic): {"field_name":"QA fixture field (synthetic)","crop_type":"Wheat","crop_variety":null,"planting_date":"2026-11-01","records":[{"key":"weather","evidence":"forecast","detail":"Open-Meteo 7-day forecast: Normal 2026-11-21 to 2026-11-27"}]}
+
+== English (1331 ms) direction=ltr
+Q: Is the weather this week a risk for my wheat?
+A: Based on the Open-Meteo 7-day forecast for your wheat field from 2026-11-21 to 2026-11-27, the weather is reported as normal (a forecast, not a recorded fact). Therefore, based strictly on the provided weather record, there is no indicated weather risk. However, since other field records such as direct observations, soil analysis, and crop comparisons are missing, we cannot rule out other risks. We recommend further inspection of your crop.
+sources: ['weather'] missing: ['observation', 'analysis', 'comparison', 'reminder']
+
+== Urdu (1419 ms) direction=rtl
+Q: کیا اس ہفتے کا موسم میری گندم کے لیے خطرہ ہے؟
+A: موجودہ موسمی ریکارڈ کے مطابق، 21 نومبر 2026 سے 27 نومبر 2026 تک کا ہفتہ وار موسم نارمل (معمول کے مطابق) ہے۔ یہ ریکارڈ شدہ حقیقت ایک پیش گوئی (forecast) پر مبنی ہے۔ دیگر ریکارڈز جیسے کہ کھیت کا مشاہدہ (observation)، تجزیہ (analysis)، اور موازنہ (comparison) دستیاب نہیں ہیں۔ دستیاب شواہد ناکافی ہیں لہذا حتمی تشخیص کی تصدیق نہیں کی جا سکتی۔ کسی بھی خطرے کی مزید جانچ کے لیے ماہر زراعت سے مشورہ کرنے کی سفارش کی جاتی ہے۔
+sources: ['weather'] missing: ['observation', 'analysis', 'comparison', 'reminder']
+
+weather PDF bytes: 2026 starts %PDF: True cautions: ['Normal'] retrieved: 2026-11-21T08:33:37+00:00

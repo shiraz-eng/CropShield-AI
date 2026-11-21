@@ -922,6 +922,30 @@ label {
   background: #fff0d8;
   color: #784c15;
 }
+.message-success {
+  border-radius: 8px;
+  padding: 9px 12px;
+  background: #e3f2df;
+  color: #14532d;
+}
+.chat-question {
+  align-self: flex-end;
+  background: #eef5ec;
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+.chat-answer {
+  display: grid;
+  gap: 6px;
+  border-left: 3px solid #14532d;
+  padding: 4px 12px;
+}
+.chat-answer[dir="rtl"] {
+  border-left: 0;
+  border-right: 3px solid #14532d;
+  font-size: 1.08em;
+  line-height: 1.9;
+}
 .loading-state {
   padding: 12px;
   color: var(--forest);
@@ -1255,5 +1279,84 @@ label {
   .app-header .avatar {
     width: 34px;
     height: 34px;
+  }
+}
+
+.auth-layout {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.auth-story {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 300px;
+  padding: clamp(20px, 5vw, 72px);
+  color: white;
+  background: #103b2b;
+}
+.auth-story .hero-photo {
+  inset: 0;
+  opacity: 0.43;
+}
+.auth-story .brand {
+  width: fit-content;
+}
+.auth-story h2 {
+  font-size: clamp(30px, 5vw, 68px);
+  max-width: 550px;
+  line-height: 1.05;
+}
+.auth-content {
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+.auth-card {
+  width: min(100%, 440px);
+  padding: clamp(18px, 4vw, 32px);
+}
+.password-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+.field-placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--forest);
+}
+.dated-observations {
+  list-style: none;
+  padding: 0;
+}
+.dated-observations li {
+  scroll-margin-top: 80px;
+}
+.farmer-notes {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.field-info h3,
+.observation figcaption {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 760px) {
+  .auth-layout {
+    grid-template-columns: 1fr;
+    align-content: start;
+  }
+  .auth-story {
+    min-height: 160px;
+  }
+  .auth-content {
+    padding: 16px;
+  }
+  .auth-story h2 {
+    font-size: 30px;
   }
 }
