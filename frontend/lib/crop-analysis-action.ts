@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { callBackend } from "./backend";
+import { backendError, backendResponse, callBackend } from "./backend";
 import { isUuid } from "./farm-validation";
 import type { AssistantAnswer, ComparisonFindings, Findings } from "./ai-types";
 
@@ -46,7 +46,12 @@ export async function compareSamples(): Promise<ComparisonFeedback> {
   return { result: result.data, error: result.error };
 }
 
-export type AssistantFeedback = { reply?: AssistantAnswer; question?: string; error?: string };
+export type AssistantFeedback = {
+  reply?: AssistantAnswer;
+  question?: string;
+  error?: string;
+  fieldUnavailable?: boolean;
+};
 
 export async function askAssistant(
   _: AssistantFeedback,
@@ -58,9 +63,18 @@ export async function askAssistant(
   if (!isUuid(fieldId)) return { error: "Choose an active field." };
   if (!question || question.length > 1200)
     return { error: "Ask a question of up to 1,200 characters." };
-  const result = await callBackend<AssistantAnswer>("/assistant", {
+  const response = await backendResponse("/assistant", {
     method: "POST",
     body: JSON.stringify({ field_id: fieldId, question, language }),
   });
-  return { reply: result.data, question, error: result.error };
+  if (!(response instanceof Response)) return response;
+  if (response.status === 404) {
+    revalidatePath("/assistant");
+    return {
+      fieldUnavailable: true,
+      error: "This field is unavailable. Choose an active field and try again.",
+    };
+  }
+  if (!response.ok) return { error: await backendError(response) };
+  return { reply: (await response.json()) as AssistantAnswer, question };
 }

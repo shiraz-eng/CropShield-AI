@@ -31,11 +31,16 @@ export function Assistant({
     fields.find(({ id }) => id === initialField)?.id ?? fields[0]?.id ?? "",
   );
   const [history, setHistory] = useState<Turn[]>([]);
+  const [draft, setDraft] = useState("");
   const [state, ask, pending] = useActionState(
     async (previous: AssistantFeedback, form: FormData) => {
       const result = await askAssistant(previous, form);
-      if (result.reply && result.question)
-        setHistory((turns) => [...turns, { question: result.question!, reply: result.reply! }]);
+      if (result.reply && result.question) {
+        const turn = { question: result.question, reply: result.reply };
+        setHistory((turns) => [...turns, turn]);
+        setDraft("");
+      }
+      if (result.fieldUnavailable) setFieldId("");
       return result;
     },
     {},
@@ -89,12 +94,15 @@ export function Assistant({
             })}
           </div>
           <form action={ask} className="stack">
-            <input type="hidden" name="field" value={fieldId} />
+            <input type="hidden" name="field" value={field?.id ?? ""} />
             <input type="hidden" name="language" value={language} />
             <label>
               {urdu ? "سوال" : "Question"}
               <textarea
                 name="question"
+                value={draft}
+                onChange={(event) => setDraft(event.target.value)}
+                readOnly={pending}
                 required
                 maxLength={1200}
                 rows={3}
@@ -119,11 +127,13 @@ export function Assistant({
             Field
             <select
               aria-label="Field"
-              value={fieldId}
-              disabled={!fields.length}
+              value={field?.id ?? ""}
+              disabled={pending || !fields.length}
               onChange={(event) => setFieldId(event.target.value)}
             >
-              {!fields.length && <option value="">No active fields</option>}
+              {!field && (
+                <option value="">{fields.length ? "Choose an active field" : "No active fields"}</option>
+              )}
               {fields.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}
