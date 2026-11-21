@@ -70,7 +70,7 @@ export function AuthForm({
           )}
           {notice && <p role="status">{notice}</p>}
           {mode === "login" && configured && (
-            <p className="insight">
+            <p className="insight" style={{ display: "block", overflowWrap: "anywhere" }}>
               <strong>Demo email</strong> cropshield-demo@example.com
               <br />
               {demoPassword ? (
