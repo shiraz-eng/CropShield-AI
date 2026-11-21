@@ -19,8 +19,11 @@ EVIDENCE_TYPES = {
 }
 
 INSTRUCTIONS = """
-Answer the farmer in the requested language. Use clear English or Urdu, and preserve
-field names, quantities and units. Only use supplied records when making field-specific claims.
+Answer naturally in the requested language, English or Urdu. For general questions,
+give a useful answer without requiring a saved field. Use the recent conversation to
+resolve follow-ups. Prior turns provide conversational context, not evidence about a
+saved field. Only use current supplied records for field-specific claims.
+Preserve field names, quantities and units. Ask a brief follow-up when needed.
 Distinguish recorded facts, AI interpretations and forecasts. Say when relevant records
 are missing. Explain symptoms separately from possible causes. Do not confirm diagnoses
 from insufficient evidence, prescribe chemical treatments or doses, invent citations, or
@@ -30,10 +33,17 @@ Return used_sources only for supplied records actually used, and do not invent s
 """.strip()
 
 
+class AssistantTurn(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    question: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1200)]
+    answer: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2400)]
+
+
 class AssistantRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     question: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1200)]
     language: Language
+    history: Annotated[list[AssistantTurn], Field(max_length=6)] = Field(default_factory=list)
 
 
 class ContextRecord(BaseModel):
@@ -84,15 +94,18 @@ class AssistantReply(BaseModel):
 
 def answer_question(
     provider: GeminiCropAnalysis, authenticated_owner: UUID,
-    context: FieldContext, request: AssistantRequest,
+    context: FieldContext | None, request: AssistantRequest,
 ) -> AssistantReply:
-    if context.owner_id != authenticated_owner:
+    if context is not None and context.owner_id != authenticated_owner:
         raise PermissionError("The selected field is unavailable.")
-    sources = {record.key: record for record in context.records}
-    missing = [key for key in CONTEXT_KEYS if key not in sources]
+    sources = {record.key: record for record in context.records} if context else {}
+    missing = [key for key in CONTEXT_KEYS if key not in sources] if context else []
     payload = {
         **request.model_dump(),
-        "field": context.model_dump(mode="json", exclude={"owner_id", "field_id"}),
+        "field": (
+            context.model_dump(mode="json", exclude={"owner_id", "field_id"})
+            if context else None
+        ),
         "missing_sources": missing,
     }
     response = provider.generate_findings(

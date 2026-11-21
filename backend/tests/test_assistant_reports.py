@@ -8,7 +8,7 @@ from uuid import uuid4
 from PIL import Image
 from pydantic import HttpUrl, ValidationError
 
-from crop_analysis.assistant import AssistantRequest, ContextRecord, FieldContext, answer_question
+from crop_analysis.assistant import AssistantRequest, AssistantTurn, ContextRecord, FieldContext, answer_question
 from crop_analysis.comparison import ComparisonResult, DatasetSource
 from crop_analysis.gemini import AnalysisUnavailable, GeminiCropAnalysis
 from crop_analysis.images import CropImage
@@ -46,6 +46,20 @@ class AssistantTests(unittest.TestCase):
         self.assertNotIn(str(self.owner), request["contents"][0].text)
         self.assertNotIn(str(self.context.field_id), request["contents"][0].text)
         self.generate.assert_called_once()
+
+    def test_general_follow_up_passes_history_without_field_records(self):
+        self.generate.return_value.text = '{"answer":"A short answer.","used_sources":[]}'
+        prior = AssistantTurn(question="Explain tillering.", answer="Side shoots form at the base.")
+        reply = answer_question(self.provider, self.owner, None, AssistantRequest(
+            question="When does that happen?", language="English", history=[prior],
+        ))
+        payload = json.loads(self.generate.call_args.kwargs["contents"][0].text)
+        self.assertIsNone(payload["field"])
+        self.assertEqual(payload["history"], [prior.model_dump()])
+        self.assertEqual(reply.sources, [])
+        self.assertEqual(reply.missing_sources, [])
+        with self.assertRaises(ValidationError):
+            AssistantRequest(question="More?", language="English", history=[prior] * 7)
 
     def test_other_owner_and_empty_messages_are_rejected(self):
         with self.assertRaises(PermissionError):

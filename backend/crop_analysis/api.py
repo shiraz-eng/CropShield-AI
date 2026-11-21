@@ -221,7 +221,7 @@ def compare_samples(credentials: Credentials) -> ComparisonResult:
 class AssistantQuestion(AssistantRequest):
     # JSON bodies carry UUIDs as strings, so this request model cannot be strict.
     model_config = ConfigDict(extra="forbid", strict=False)
-    field_id: UUID
+    field_id: UUID | None = None
 
 
 def _clip(text: str, limit: int = 350) -> str:
@@ -285,11 +285,13 @@ def _field_context(db: Session, field: dict) -> FieldContext:
 @router.post("/assistant", response_model=AssistantReply)
 def ask_assistant(question: AssistantQuestion, credentials: Credentials) -> AssistantReply:
     with session(credentials) as db:
-        context = _field_context(db, db.field(question.field_id))
+        context = _field_context(db, db.field(question.field_id)) if question.field_id else None
         with provider(retry_overload=True) as analyzer:
             return answer_question(
                 analyzer, UUID(db.owner), context,
-                AssistantRequest(question=question.question, language=question.language),
+                AssistantRequest(
+                    question=question.question, language=question.language, history=question.history,
+                ),
             )
 
 

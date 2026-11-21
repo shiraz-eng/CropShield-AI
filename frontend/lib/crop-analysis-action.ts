@@ -60,19 +60,26 @@ export async function askAssistant(
   const fieldId = String(form.get("field") ?? "");
   const question = String(form.get("question") ?? "").trim();
   const language = form.get("language") === "Urdu" ? "Urdu" : "English";
-  if (!isUuid(fieldId)) return { error: "Choose an active field." };
+  if (fieldId && !isUuid(fieldId)) return { error: "Choose an active field or use general chat." };
   if (!question || question.length > 1200)
     return { error: "Ask a question of up to 1,200 characters." };
+  let history: unknown;
+  try {
+    history = JSON.parse(String(form.get("history") ?? "[]"));
+    if (!Array.isArray(history) || history.length > 6) throw new Error();
+  } catch {
+    return { error: "Start a new chat and try again." };
+  }
   const response = await backendResponse("/assistant", {
     method: "POST",
-    body: JSON.stringify({ field_id: fieldId, question, language }),
+    body: JSON.stringify({ field_id: fieldId || null, question, language, history }),
   });
   if (!(response instanceof Response)) return response;
   if (response.status === 404) {
     revalidatePath("/assistant");
     return {
       fieldUnavailable: true,
-      error: "This field is unavailable. Choose an active field and try again.",
+      error: "This field is unavailable. Choose another field or continue in general chat.",
     };
   }
   if (!response.ok) return { error: await backendError(response) };
