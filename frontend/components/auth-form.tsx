@@ -33,10 +33,12 @@ export function AuthForm({
   mode,
   configured,
   notice,
+  demoPassword,
 }: {
   mode: AuthMode;
   configured: boolean;
   notice?: string;
+  demoPassword?: string;
 }) {
   const [state, submit, pending] = useActionState(
     authAction.bind(null, mode),
@@ -71,7 +73,13 @@ export function AuthForm({
             <p className="insight">
               <strong>Demo email</strong> cropshield-demo@example.com
               <br />
-              Use the demo password shared with you.
+              {demoPassword ? (
+                <>
+                  <strong>Demo password</strong> <code>{demoPassword}</code>
+                </>
+              ) : (
+                "Use the demo password shared with you."
+              )}
             </p>
           )}
           <form action={submit} className="stack">

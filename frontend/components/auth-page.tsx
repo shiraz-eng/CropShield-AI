@@ -15,6 +15,11 @@ export async function AuthPage({
   if (auth && (mode === "login" || mode === "signup")) redirect("/dashboard");
   if (!auth && mode === "reset") redirect("/forgot-password");
   return (
-    <AuthForm mode={mode} configured={!!supabaseConfig()} notice={notice} />
+    <AuthForm
+      mode={mode}
+      configured={!!supabaseConfig()}
+      notice={notice}
+      demoPassword={mode === "login" ? process.env.PUBLIC_DEMO_PASSWORD : undefined}
+    />
   );
 }
