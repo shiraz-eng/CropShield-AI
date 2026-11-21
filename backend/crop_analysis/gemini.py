@@ -44,9 +44,9 @@ class GeminiCropAnalysis:
         self.model = model
 
     @classmethod
-    def from_environment(cls, *, retry_overload: bool = False):
+    def from_environment(cls, *, retry_overload: bool = False, model_override: str | None = None):
         key = os.environ.get("GEMINI_API_KEY", "").strip()
-        model = os.environ.get("GEMINI_MODEL", "").strip() or DEFAULT_MODEL
+        model = model_override or os.environ.get("GEMINI_MODEL", "").strip() or DEFAULT_MODEL
         if not key:
             raise AnalysisUnavailable("not_configured", "Crop analysis is unavailable.")
         retry = types.HttpRetryOptions(attempts=1)
@@ -55,7 +55,7 @@ class GeminiCropAnalysis:
             # Preserve time for the owner-scoped context reads and the frontend's 90 s deadline.
             timeout = 18_000
             retry = types.HttpRetryOptions(
-                attempts=3, initial_delay=1, max_delay=2, jitter=0.5, http_status_codes=[503],
+                attempts=2, initial_delay=1, max_delay=2, jitter=0.5, http_status_codes=[503],
             )
         options = types.HttpOptions(timeout=timeout, retry_options=retry)
         return cls(genai.Client(api_key=key, http_options=options), model)

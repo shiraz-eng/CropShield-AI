@@ -29,6 +29,7 @@ bearer = HTTPBearer(auto_error=False)
 logger = logging.getLogger(__name__)
 Credentials = Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)]
 PROVIDER_STATUS = {"rate_limited": 429, "timeout": 504, "invalid_output": 502, "unsupported_crop": 422}
+ASSISTANT_FALLBACK_MODEL = "gemini-3.1-flash-lite"
 FIELD_COLUMNS = "id,name,crop_type,crop_variety,planting_date,latitude,longitude"
 
 
@@ -132,8 +133,12 @@ def session(credentials: HTTPAuthorizationCredentials | None) -> Iterator[Sessio
 
 
 @contextmanager
-def provider(*, retry_overload: bool = False) -> Iterator[GeminiCropAnalysis]:
-    analyzer = GeminiCropAnalysis.from_environment(retry_overload=retry_overload)
+def provider(
+    *, retry_overload: bool = False, model_override: str | None = None,
+) -> Iterator[GeminiCropAnalysis]:
+    analyzer = GeminiCropAnalysis.from_environment(
+        retry_overload=retry_overload, model_override=model_override,
+    )
     try:
         yield analyzer
     finally:
@@ -286,13 +291,22 @@ def _field_context(db: Session, field: dict) -> FieldContext:
 def ask_assistant(question: AssistantQuestion, credentials: Credentials) -> AssistantReply:
     with session(credentials) as db:
         context = _field_context(db, db.field(question.field_id)) if question.field_id else None
+        owner = UUID(db.owner)
+        request = AssistantRequest(
+            question=question.question, language=question.language, history=question.history,
+        )
         with provider(retry_overload=True) as analyzer:
-            return answer_question(
-                analyzer, UUID(db.owner), context,
-                AssistantRequest(
-                    question=question.question, language=question.language, history=question.history,
-                ),
-            )
+            try:
+                return answer_question(analyzer, owner, context, request)
+            except AnalysisUnavailable as error:
+                if (
+                    error.code not in {"provider_busy", "timeout", "invalid_output"}
+                    or analyzer.model == ASSISTANT_FALLBACK_MODEL
+                ):
+                    raise
+                logger.info("Trying the assistant fallback model after %s", error.code)
+        with provider(model_override=ASSISTANT_FALLBACK_MODEL) as fallback:
+            return answer_question(fallback, owner, context, request)
 
 
 def _pdf(content: bytes, name: str) -> Response:

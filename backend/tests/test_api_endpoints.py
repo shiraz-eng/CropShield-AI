@@ -133,6 +133,24 @@ class EndpointTests(unittest.TestCase):
         self.assertEqual(response.media_type, "application/pdf")
         self.assertTrue(response.body.startswith(b"%PDF"))
 
+    def test_assistant_falls_back_to_a_second_model_on_provider_overload(self):
+        question = api.AssistantQuestion(question="How should I scout wheat?", language="English")
+        def handle(request):
+            self.assertEqual(request.url.path, "/auth/v1/user")
+            return httpx.Response(200, json={"id": OWNER})
+
+        with (
+            patch("crop_analysis.api.GeminiCropAnalysis.from_environment") as gemini,
+            patch("crop_analysis.api.answer_question") as answer,
+        ):
+            primary = gemini.return_value
+            primary.model = "primary"
+            answer.side_effect = [api.AnalysisUnavailable("provider_busy", "Busy"), "fallback reply"]
+            self.assertEqual(self.run_with(handle, lambda: api.ask_assistant(question, TOKEN)), "fallback reply")
+            self.assertEqual(gemini.call_count, 2)
+            self.assertEqual(gemini.call_args.kwargs["model_override"], api.ASSISTANT_FALLBACK_MODEL)
+            self.assertEqual(answer.call_args_list[0].args[1:], answer.call_args_list[1].args[1:])
+
     def test_cross_owner_field_is_unavailable_to_assistant(self):
         def handle(request):
             if request.url.path == "/auth/v1/user":

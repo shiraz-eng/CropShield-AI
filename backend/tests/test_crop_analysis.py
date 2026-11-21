@@ -56,7 +56,7 @@ class CropAnalysisTests(unittest.TestCase):
             GeminiCropAnalysis.from_environment(retry_overload=True)
             options = client.call_args.kwargs["http_options"]
             self.assertEqual(options.timeout, 18_000)
-            self.assertEqual(options.retry_options.attempts, 3)
+            self.assertEqual(options.retry_options.attempts, 2)
             self.assertEqual(options.retry_options.http_status_codes, [503])
 
     def test_uncertain_stage_uses_one_structured_call(self):
