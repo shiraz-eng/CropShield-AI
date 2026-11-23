@@ -33,6 +33,7 @@ export default async function Page({
   return (
     <>
       <LiveWeatherHeader />
+      <Link className="text-link" href={`/aquaguard?field=${selected.id}`}>Open AquaGuard irrigation overview</Link>
       <nav className="card panel actions" aria-label="Saved fields">
         {fields.map(({ id, name }) => (
           <Link key={id} className={id === selected.id ? "button" : "text-link"}

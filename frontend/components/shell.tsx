@@ -10,6 +10,7 @@ import {
   ChevronRight,
   ClipboardList,
   CloudSun,
+  Droplets,
   House,
   Menu,
   MessageCircle,
@@ -20,6 +21,7 @@ import {
   Sprout,
   Stethoscope,
   Wheat,
+  Warehouse,
   X,
 } from "lucide-react";
 import { useState, type ReactNode } from "react";
@@ -46,6 +48,14 @@ const navigation = [
       { path: "/assistant", name: "AI Assistant", Icon: MessageCircle },
       { path: "/reports", name: "Reports", Icon: ClipboardList },
       { path: "/settings", name: "Settings", Icon: Settings },
+    ],
+  },
+  {
+    group: "Farm tools",
+    links: [
+      { path: "/aquaguard", name: "AquaGuard AI", Icon: Droplets },
+      { path: "/rustwatch", name: "RustWatch AI", Icon: ShieldCheck },
+      { path: "/grainsafe", name: "GrainSafe AI", Icon: Warehouse },
     ],
   },
 ];
@@ -191,7 +201,7 @@ export function AppHeader({
         </Dialog>
         <Dialog
           title="Notifications"
-          description="Sample updates for this workspace."
+          description="Reminders and module inspections that are overdue or due within 7 days."
           open={notificationOpen}
           onOpenChange={setNotificationOpen}
           trigger={

@@ -13,6 +13,8 @@ const fieldColumns =
   "id,name,crop_type,crop_variety,planting_date,area,area_unit,country,region,district,latitude,longitude,notes,is_archived,updated_at";
 const observationColumns =
   "id,field_id,observed_at,notes,observation_images(id,storage_path,original_filename,mime_type,file_size)";
+const evidenceObservationColumns =
+  "id,field_id,observed_at,notes,observation_images(id,storage_path,original_filename,mime_type,file_size,photo_quality)";
 type ObservationRow = Omit<SavedObservation, "images"> & {
   observation_images: (Omit<SavedImage, "url"> & { storage_path: string })[];
 };
@@ -43,15 +45,20 @@ export async function getField(id: string) {
 
 export async function listObservations(fieldId?: string, limit?: number) {
   const { client, user } = await requireIdentity();
-  let query = client
-    .from("crop_observations")
-    .select(observationColumns)
-    .eq("user_id", user.id)
-    .order("observed_at", { ascending: false })
-    .order("created_at", { ascending: false });
-  if (fieldId) query = query.eq("field_id", fieldId);
-  if (limit) query = query.limit(limit);
-  const { data, error } = await query.returns<ObservationRow[]>();
+  function observationQuery(columns: string) {
+    let query = client
+      .from("crop_observations")
+      .select(columns)
+      .eq("user_id", user.id)
+      .order("observed_at", { ascending: false })
+      .order("created_at", { ascending: false });
+    if (fieldId) query = query.eq("field_id", fieldId);
+    if (limit) query = query.limit(limit);
+    return query.returns<ObservationRow[]>();
+  }
+  const result = await observationQuery(evidenceObservationColumns);
+  const { data, error } = result.error?.code === "42703"
+    ? await observationQuery(observationColumns) : result;
   if (error) throw new Error("Could not load your observations.");
   const paths = data.flatMap((row) =>
     row.observation_images.map((image) => image.storage_path),
@@ -180,4 +187,58 @@ export function dueReminderNotices(reminders: SavedReminder[], fields: { id: str
   return reminders
     .filter(({ completed, due_on }) => !completed && due_on <= soon)
     .map(({ id, title, due_on, field_id }) => ({ id, title, detail: `${fieldName(field_id)} · due ${due_on}` }));
+}
+
+export type ModuleInspection = {
+  id: string; module: "AquaGuard" | "RustWatch" | "GrainSafe"; field_id: string | null; batch: string | null;
+  due_on: string; href: string;
+};
+const moduleNames = { irrigation: "AquaGuard", rust: "RustWatch", storage: "GrainSafe" } as const;
+const modulePaths = { irrigation: "/aquaguard?field=", rust: "/rustwatch?field=", storage: "/grainsafe?batch=" } as const;
+
+/**
+ * Next inspection dates from AquaGuard, RustWatch and GrainSafe. Only the latest record per
+ * module and field (or batch) counts, so recording a newer inspection replaces the earlier date.
+ */
+export async function listModuleInspections(): Promise<ModuleInspection[]> {
+  const { client, user } = await requireIdentity();
+  const [records, batches] = await Promise.all([
+    client.from("agricultural_records")
+      .select("id,kind,field_id,batch_id,inspect_on:details->>inspect_on")
+      .eq("user_id", user.id)
+      .order("recorded_on", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(300)
+      .returns<{ id: string; kind: keyof typeof moduleNames; field_id: string | null; batch_id: string | null; inspect_on: string | null }[]>(),
+    client.from("grain_batches").select("id,name").eq("user_id", user.id).returns<{ id: string; name: string }[]>(),
+  ]);
+  // The modules are optional for the core workspace; their reminders never block navigation.
+  if (records.error || batches.error) return [];
+  const seen = new Set<string>();
+  const result: ModuleInspection[] = [];
+  for (const row of records.data) {
+    const subject = row.field_id ?? row.batch_id ?? "";
+    const key = row.kind + subject;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    if (!row.inspect_on || !/^\d{4}-\d{2}-\d{2}$/.test(row.inspect_on)) continue;
+    const batch = row.batch_id ? batches.data.find(({ id }) => id === row.batch_id)?.name ?? "Storage batch" : null;
+    result.push({ id: row.id, module: moduleNames[row.kind], field_id: row.field_id, batch, due_on: row.inspect_on,
+      href: modulePaths[row.kind] + subject });
+  }
+  return result.sort((a, b) => a.due_on.localeCompare(b.due_on));
+}
+
+/** Module inspections that are overdue or due within the next seven days, as bell notices. */
+export function moduleInspectionNotices(inspections: ModuleInspection[], fields: { id: string; name: string }[]) {
+  const soon = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
+  return inspections
+    .filter(({ due_on }) => due_on <= soon)
+    .map((item) => ({ id: `module-${item.id}`, title: `${item.module} inspection`,
+      detail: `${inspectionSubject(item, fields)} · due ${item.due_on}` }));
+}
+
+/** The field or storage batch name a module inspection belongs to. */
+export function inspectionSubject(item: ModuleInspection, fields: { id: string; name: string }[]) {
+  return item.batch ?? fields.find(({ id }) => id === item.field_id)?.name ?? "Field";
 }

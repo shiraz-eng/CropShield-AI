@@ -1,6 +1,6 @@
 """Open-Meteo daily forecast and the app's fixed caution thresholds."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from email.utils import parsedate_to_datetime
 from uuid import UUID
 
@@ -12,6 +12,32 @@ from .reports import VerifiedWeather, WeatherCaution
 SOURCE = "https://api.open-meteo.com/v1/forecast"
 HEAVY_RAIN_MM = 25
 HIGH_HEAT_C = 35
+
+
+def irrigation_weather(latitude: float, longitude: float) -> dict | None:
+    """Recent modeled rain and current forecasts in field-local dates and metric units."""
+    try:
+        response = httpx.get(SOURCE, timeout=6.0, params={
+            "latitude": f"{latitude:.2f}", "longitude": f"{longitude:.2f}", "timezone": "auto",
+            "past_days": 3, "forecast_days": 7, "temperature_unit": "celsius", "precipitation_unit": "mm",
+            "daily": "precipitation_sum,temperature_2m_max",
+        })
+        response.raise_for_status()
+        payload = response.json()
+        timezone = payload["timezone"]
+        offset = timedelta(seconds=payload["utc_offset_seconds"])
+        today = (datetime.now(UTC) + offset).date().isoformat()
+        units = payload["daily_units"]
+        if units["precipitation_sum"] != "mm" or units["temperature_2m_max"] != "°C":
+            return None
+        daily = payload["daily"]
+        rows = [{"date": day, "rain": rain, "high": high} for day, rain, high in zip(
+            daily["time"], daily["precipitation_sum"], daily["temperature_2m_max"], strict=True,
+        )]
+    except (httpx.HTTPError, KeyError, TypeError, ValueError, OverflowError):
+        return None
+    return {"timezone": timezone, "recent": [row for row in rows if row["date"] < today],
+            "forecast": [row for row in rows if row["date"] >= today], "source": SOURCE}
 
 
 def evaluate(field_id: UUID, days: list[dict], retrieved_at: datetime) -> VerifiedWeather:

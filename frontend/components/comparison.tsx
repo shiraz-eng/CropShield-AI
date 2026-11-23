@@ -10,9 +10,12 @@ import {
   type ComparisonFeedback,
 } from "@/lib/crop-analysis-action";
 import type { ComparisonFindings } from "@/lib/ai-types";
+import { checkComparisonReadiness } from "@/lib/evidence-action";
+import { readinessLabels, type Readiness } from "@/lib/evidence-types";
 import type { SavedField, SavedObservation } from "@/lib/farm-types";
 import type { SavedComparison } from "@/lib/farm-data";
 import { CropPhoto, EmptyState, PageHeader, SectionTitle } from "./shared";
+import { ComparisonEvidence } from "./crop-evidence";
 
 type Mode = "illustrative" | "historical";
 const label = (value: string) => value.replaceAll("_", " ");
@@ -36,6 +39,7 @@ function Findings({ result }: { result: ComparisonFindings }) {
         Stage: {label(result.previous_growth_stage)} → {label(result.current_growth_stage)}
       </p>
       <p>Image comparability: {result.image_comparability}</p>
+      {result.evidence_readiness && <ComparisonEvidence readiness={result.evidence_readiness} />}
       {lists
         .filter(([, items]) => items.length)
         .map(([title, items]) => (
@@ -54,6 +58,41 @@ function Findings({ result }: { result: ComparisonFindings }) {
       </a>
     </div>
   );
+}
+
+function ComparisonControls({ first, second, comparing, illustrative = false }: {
+  first?: string; second?: string; comparing: boolean; illustrative?: boolean;
+}) {
+  const [readiness, setReadiness] = useState<Readiness>();
+  const [error, setError] = useState("");
+  const [checking, setChecking] = useState(false);
+  const canCheck = illustrative || Boolean(first && second && first !== second);
+
+  async function check() {
+    setChecking(true);
+    setReadiness(undefined);
+    setError("");
+    try {
+      const result = await checkComparisonReadiness(first, second);
+      setReadiness(result.data);
+      setError(result.error ?? "");
+    } catch {
+      setError("Could not check comparison readiness. Try again.");
+    } finally {
+      setChecking(false);
+    }
+  }
+
+  return <>
+    <button type="button" className="button button-outline" disabled={!canCheck || checking || comparing} onClick={() => void check()}>
+      {checking ? "Checking photos…" : "Check comparison readiness"}
+    </button>
+    {readiness && <ComparisonEvidence readiness={readiness} />}
+    {error && <p className="message-error" role="alert">{error}</p>}
+    <button type="submit" className="button" disabled={comparing || !readiness || readiness.status === "unsuitable"}>
+      {comparing ? "Comparing photos…" : illustrative ? "Run illustrative comparison" : "Compare with Gemini"}
+    </button>
+  </>;
 }
 
 export function Comparison({
@@ -153,12 +192,9 @@ export function Comparison({
                 recommended window is 15–25 days.
               </p>
             )}
-            <button
-              className="button"
-              disabled={historicalPending || !earlier || !later || earlier.observed_at === later.observed_at}
-            >
-              {historicalPending ? "Comparing photos…" : "Compare with Gemini"}
-            </button>
+            <ComparisonControls key={first + ":" + second}
+              first={earlier?.observed_at !== later?.observed_at ? earlier?.id : undefined}
+              second={later?.id} comparing={historicalPending} />
             {earlier && later && earlier.observed_at === later.observed_at && (
               <p className="message-caution">Choose observations from different dates.</p>
             )}
@@ -182,7 +218,7 @@ export function Comparison({
         <>
           <p className="mock-notice" role="status">
             <Info size={16} />
-            Illustrative growth-stage comparison — not verified historical field progression.
+            Illustrative crop images used for growth-stage comparison. Not verified historical field progression.
           </p>
           <div className="comparison-layout">
             <section className="card panel comparison-large">
@@ -210,9 +246,7 @@ export function Comparison({
               <a className="text-link" href={samples.license_url}>
                 {samples.license} <ArrowRight size={15} />
               </a>
-              <button className="button" disabled={samplePending}>
-                {samplePending ? "Comparing samples…" : "Run illustrative comparison"}
-              </button>
+              <ComparisonControls illustrative comparing={samplePending} />
               {sample.error && <p className="message-error" role="alert">{sample.error}</p>}
               {sample.result && <Findings result={sample.result} />}
             </form>
@@ -232,6 +266,7 @@ export function Comparison({
                   {new Date(item.created_at).toLocaleDateString()}
                   {item.interval_days ? ` · ${item.interval_days} days` : " · no interval claimed"}
                   {` · ${label(item.result.previous_growth_stage)} → ${label(item.result.current_growth_stage)}`}
+                  {item.result.evidence_readiness && ` · ${readinessLabels[item.result.evidence_readiness.status]}`}
                 </small>
               </div>
               <a className="button button-outline" href={`/api/reports/comparison/${item.id}`}>

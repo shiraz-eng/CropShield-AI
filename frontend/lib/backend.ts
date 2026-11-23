@@ -21,14 +21,13 @@ export async function backendResponse(
   const { data } = await auth.client.auth.getSession();
   if (!data.session) return { error: statusErrors[401] };
   const origin = process.env.CROP_ANALYSIS_API_URL || "http://127.0.0.1:8000";
-  const signal = AbortSignal.timeout(90_000);
+  const signal = init.signal ?? AbortSignal.timeout(90_000);
+  const headers = new Headers(init.headers);
+  if (init.body && !headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  headers.set("Authorization", `Bearer ${data.session.access_token}`);
   const request = {
     ...init,
-    headers: {
-      ...init.headers,
-      Authorization: `Bearer ${data.session.access_token}`,
-      ...(init.body ? { "Content-Type": "application/json" } : {}),
-    },
+    headers,
     cache: "no-store" as const,
     signal,
   };
@@ -55,6 +54,12 @@ export async function backendError(response: Response) {
   try {
     const body = (await response.json()) as { detail?: unknown };
     if (typeof body.detail === "string") detail = body.detail;
+    // FastAPI validation errors arrive as a list; show the first rule the input broke.
+    else if (response.status === 422 && Array.isArray(body.detail)) {
+      const first = body.detail[0] as { msg?: unknown } | undefined;
+      if (typeof first?.msg === "string") detail = first.msg.replace(/^Value error, /, "");
+      else detail = "Check the entered values and try again.";
+    }
   } catch {}
   return statusErrors[response.status] ?? (detail || "The AI service is unavailable. Try again later.");
 }

@@ -1,0 +1,245 @@
+{
+  "version": 1,
+  "topics": [
+    {
+      "id": "dashboard",
+      "path": "/dashboard",
+      "title": {
+        "en": "Dashboard",
+        "ur": "ڈیش بورڈ"
+      },
+      "question": {
+        "en": "What can I do on the dashboard?",
+        "ur": "ڈیش بورڈ پر کیا کر سکتا ہوں؟"
+      },
+      "steps": [
+        {
+          "en": "Review Workspace totals for fields, observations, comparisons, and reminders.",
+          "ur": "کھیتوں، مشاہدات، موازنوں اور یاد دہانیوں کی تعداد دیکھیں.",
+          "selector": "[aria-label=\"Workspace totals\"]",
+          "label": ""
+        },
+        {
+          "en": "Choose Scan Crop to save a new observation.",
+          "ur": "نیا مشاہدہ محفوظ کرنے کے لیے Scan Crop منتخب کریں.",
+          "selector": "a[href=\"/scanner\"]",
+          "label": "Scan Crop"
+        }
+      ]
+    },
+    {
+      "id": "fields",
+      "path": "/fields",
+      "title": {
+        "en": "My Fields",
+        "ur": "میرے کھیت"
+      },
+      "question": {
+        "en": "How do I add a field?",
+        "ur": "نیا کھیت کیسے شامل کروں؟"
+      },
+      "steps": [
+        {
+          "en": "Open My Fields and choose Add field.",
+          "ur": "My Fields کھولیں اور Add field منتخب کریں.",
+          "selector": "button",
+          "label": "Add field"
+        },
+        {
+          "en": "Enter the field details and choose Save field. Add latitude and longitude if you want a field forecast.",
+          "ur": "کھیت کی تفصیل درج کریں اور Save field دبائیں۔ موسم کے لیے عرض بلد اور طول بلد بھی درج کریں۔",
+          "selector": "button",
+          "label": "Save field"
+        }
+      ]
+    },
+    {
+      "id": "scanner",
+      "path": "/scanner",
+      "title": {
+        "en": "Crop Scanner",
+        "ur": "فصل اسکینر"
+      },
+      "question": {
+        "en": "How do I upload a crop photo?",
+        "ur": "فصل کی تصویر کیسے اپ لوڈ کروں؟"
+      },
+      "steps": [
+        {
+          "en": "Choose an active field and set the Observation date. If you have no fields, create one in My Fields.",
+          "ur": "فعال کھیت اور مشاہدے کی تاریخ منتخب کریں۔ اگر کھیت موجود نہیں تو My Fields میں بنائیں۔",
+          "selector": "select[name=\"field\"]",
+          "label": ""
+        },
+        {
+          "en": "Choose Drop photos or browse files and add up to three JPEG, PNG, or WebP photos. Follow the upload limit shown on the page.",
+          "ur": "Drop photos or browse files دبائیں اور زیادہ سے زیادہ تین JPEG، PNG یا WebP تصاویر منتخب کریں۔ صفحے پر دکھائی گئی حد کا خیال رکھیں۔",
+          "selector": "button",
+          "label": "Drop photos or browse files"
+        },
+        {
+          "en": "Review capture warnings, then choose Save observation. Choose Open in Crop Doctor to analyze saved wheat photos.",
+          "ur": "تصویر کی تنبیہات دیکھیں، پھر Save observation دبائیں۔ محفوظ تصاویر کے تجزیے کے لیے Open in Crop Doctor منتخب کریں۔",
+          "selector": "button",
+          "label": "Save observation"
+        }
+      ]
+    },
+    {
+      "id": "doctor",
+      "path": "/crop-doctor",
+      "title": {
+        "en": "AI Crop Doctor",
+        "ur": "فصل کا تجزیہ"
+      },
+      "question": {
+        "en": "How do I analyze wheat photos?",
+        "ur": "گندم کی تصویر کا تجزیہ کیسے کروں؟"
+      },
+      "steps": [
+        {
+          "en": "Open a saved observation with Analyze or View analysis. Save a wheat observation in Crop Scanner first if the list is empty.",
+          "ur": "محفوظ مشاہدہ Analyze یا View analysis سے کھولیں۔ فہرست خالی ہو تو پہلے Crop Scanner میں مشاہدہ محفوظ کریں۔",
+          "selector": "a[href^=\"/crop-doctor?observation=\"]",
+          "label": ""
+        },
+        {
+          "en": "Choose Analyze saved photos for a new observation. The result explains visible evidence and uncertainty without confirming a diagnosis.",
+          "ur": "نئے مشاہدے کے لیے Analyze saved photos دبائیں۔ نتیجہ دکھائی دینے والے شواہد اور غیر یقینی پہلو بتاتا ہے۔",
+          "selector": "button",
+          "label": "Analyze saved photos"
+        }
+      ]
+    },
+    {
+      "id": "comparison",
+      "path": "/comparison",
+      "title": {
+        "en": "Crop Memory",
+        "ur": "فصلوں کا موازنہ"
+      },
+      "question": {
+        "en": "How do I compare two observations?",
+        "ur": "دو مشاہدات کا موازنہ کیسے کروں؟"
+      },
+      "steps": [
+        {
+          "en": "In Verified historical mode, choose two photo observations from the same wheat field on different dates. Select Check comparison readiness before Compare with Gemini.",
+          "ur": "Verified historical میں ایک ہی گندم کے کھیت کے دو مختلف تاریخوں والے مشاہدات منتخب کریں۔ Compare with Gemini سے پہلے Check comparison readiness دبائیں۔",
+          "selector": "button",
+          "label": "Verified historical"
+        },
+        {
+          "en": "In Illustrative dataset mode, select Check comparison readiness to review the attributed examples before comparing. These photos do not establish a field history.",
+          "ur": "Illustrative dataset میں مثالوں کا موازنہ کرنے سے پہلے Check comparison readiness دبائیں۔ یہ تصاویر کھیت کی تاریخ ثابت نہیں کرتی ہیں۔",
+          "selector": "button",
+          "label": "Illustrative dataset"
+        }
+      ]
+    },
+    {
+      "id": "weather",
+      "path": "/weather",
+      "title": {
+        "en": "Weather Guardian",
+        "ur": "موسم کی نگرانی"
+      },
+      "question": {
+        "en": "Where can I find weather warnings?",
+        "ur": "موسمی انتباہ کہاں ملیں گے؟"
+      },
+      "steps": [
+        {
+          "en": "Choose a field with latitude and longitude. If coordinates are missing, edit the field in My Fields.",
+          "ur": "عرض بلد اور طول بلد والا کھیت منتخب کریں۔ اگر یہ معلومات نہیں ہیں تو My Fields میں کھیت میں ترمیم کریں۔",
+          "selector": "nav[aria-label=\"Saved fields\"]",
+          "label": ""
+        },
+        {
+          "en": "Read Forecast cautions and the provider timestamp. If the forecast is unavailable, try reloading later.",
+          "ur": "Forecast cautions اور پیش گوئی کا وقت دیکھیں۔ اگر پیش گوئی دستیاب نہیں تو بعد میں صفحہ دوبارہ کھولیں۔",
+          "selector": "h2",
+          "label": "Forecast cautions"
+        }
+      ]
+    },
+    {
+      "id": "reminders",
+      "path": "/reminders",
+      "title": {
+        "en": "Reminders",
+        "ur": "یاد دہانیاں"
+      },
+      "question": {
+        "en": "How do I create an inspection reminder?",
+        "ur": "معائنے کی یاد دہانی کیسے بناؤں؟"
+      },
+      "steps": [
+        {
+          "en": "Choose Add reminder. You need an active field first.",
+          "ur": "Add reminder منتخب کریں۔ پہلے ایک فعال کھیت ہونا ضروری ہے۔",
+          "selector": "button",
+          "label": "Add reminder"
+        },
+        {
+          "en": "Enter the task, choose a field and due date, then choose Save reminder.",
+          "ur": "کام، کھیت اور مقررہ تاریخ درج کریں، پھر Save reminder دبائیں۔",
+          "selector": "button",
+          "label": "Save reminder"
+        }
+      ]
+    },
+    {
+      "id": "assistant",
+      "path": "/assistant",
+      "title": {
+        "en": "AI Farmer Assistant",
+        "ur": "زرعی معاون"
+      },
+      "question": {
+        "en": "How do I switch the assistant to Urdu?",
+        "ur": "معاون کو اردو میں کیسے بدلوں؟"
+      },
+      "steps": [
+        {
+          "en": "In AI Farmer Assistant, open Response language and select اردو (Urdu).",
+          "ur": "AI Farmer Assistant میں Response language کھولیں اور اردو منتخب کریں۔",
+          "selector": "select[aria-label=\"Response language\"]",
+          "label": ""
+        },
+        {
+          "en": "Use General chat or select a field to use its saved records. Enter a question and choose Ask or پوچھیں.",
+          "ur": "General chat استعمال کریں یا محفوظ ریکارڈ کے لیے کھیت منتخب کریں۔ سوال لکھیں اور Ask یا پوچھیں دبائیں۔",
+          "selector": "textarea[name=\"question\"]",
+          "label": ""
+        }
+      ]
+    },
+    {
+      "id": "reports",
+      "path": "/reports",
+      "title": {
+        "en": "Reports",
+        "ur": "رپورٹس"
+      },
+      "question": {
+        "en": "How do I download a crop report?",
+        "ur": "فصل کی رپورٹ کیسے ڈاؤن لوڈ کروں؟"
+      },
+      "steps": [
+        {
+          "en": "Open Reports and find Crop Health Reports, Growth Comparison Reports, or Weather Risk Summaries.",
+          "ur": "Reports کھولیں اور فصل کی صحت، نشوونما کے موازنے یا موسمی خطرات کا سیکشن دیکھیں۔",
+          "selector": "h2",
+          "label": "Crop Health Reports"
+        },
+        {
+          "en": "Choose the PDF link next to the record. Crop Health needs a saved analysis, comparison reports need a saved comparison, and weather reports need field coordinates.",
+          "ur": "ریکارڈ کے سامنے PDF کا لنک دبائیں۔ صحت کی رپورٹ کے لیے محفوظ تجزیہ، موازنے کے لیے محفوظ موازنہ، اور موسم کے لیے کھیت کے مکانی نقاط ضروری ہیں۔",
+          "selector": "a[aria-label^=\"Download PDF:\"]",
+          "label": ""
+        }
+      ]
+    }
+  ]
+}

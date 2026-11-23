@@ -20,6 +20,7 @@ import type {
 } from "@/lib/farm-types";
 import { CropPhoto, EmptyState, PageHeader, SectionTitle } from "./shared";
 import { Dialog } from "./ui/dialog";
+import { PhotoEvidence } from "./crop-evidence";
 
 function FieldForm({
   field,
@@ -365,6 +366,7 @@ function ObservationTimeline({
                     {image.original_filename} ·{" "}
                     {Math.ceil(image.file_size / 1024)} KB
                   </figcaption>
+                  <PhotoEvidence quality={image.photo_quality} />
                 </figure>
               ))}
             </div>

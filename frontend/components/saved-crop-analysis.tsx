@@ -7,6 +7,7 @@ import { analyzeSavedObservation, type AnalysisFeedback } from "@/lib/crop-analy
 import type { Findings } from "@/lib/ai-types";
 import type { SavedImage } from "@/lib/farm-types";
 import { CropPhoto, PageHeader, SectionTitle } from "./shared";
+import { PhotoEvidence } from "./crop-evidence";
 
 const label = (value: string) => value.replaceAll("_", " ");
 
@@ -47,13 +48,13 @@ export function SavedCropAnalysis({
       <section className="card panel stack">
         <SectionTitle title="Saved photos" />
         <div className="before-after">
-          {photos.map((photo) =>
-            photo.url ? (
-              <CropPhoto key={photo.id} src={photo.url} alt={`${fieldName} wheat photo ${observedAt}`} />
-            ) : (
-              <p key={photo.id}>Photo link expired. Reload the page.</p>
-            ),
-          )}
+          {photos.map((photo) => (
+            <div className="stack" key={photo.id}>
+              {photo.url ? <CropPhoto src={photo.url} alt={`${fieldName} wheat photo ${observedAt}`} />
+                : <p>Photo link expired. Reload the page.</p>}
+              <PhotoEvidence quality={photo.photo_quality} />
+            </div>
+          ))}
         </div>
       </section>
       <form action={analyze} className="card panel stack">

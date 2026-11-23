@@ -21,9 +21,11 @@ type Turn = { question: string; reply: NonNullable<AssistantFeedback["reply"]> }
 export function Assistant({
   fields,
   initialField,
+  initialBatch,
 }: {
   fields: SavedField[];
   initialField?: string;
+  initialBatch?: string;
 }) {
   const { user } = useDemo();
   const [language, setLanguage] = useState<Language>(user.language);
@@ -31,6 +33,7 @@ export function Assistant({
     fields.find(({ id }) => id === initialField)?.id ?? "",
   );
   const [history, setHistory] = useState<Turn[]>([]);
+  const [batchId, setBatchId] = useState(initialBatch);
   const [draft, setDraft] = useState("");
   const [dismissed, setDismissed] = useState(false);
   const chatLog = useRef<HTMLDivElement>(null);
@@ -49,6 +52,7 @@ export function Assistant({
       }
       if (result.fieldUnavailable) {
         setFieldId("");
+        setBatchId(undefined);
         setHistory([]);
       }
       return result;
@@ -128,6 +132,7 @@ export function Assistant({
           </div>
           <form action={ask} className="stack">
             <input type="hidden" name="field" value={field?.id ?? ""} />
+            <input type="hidden" name="batch" value={batchId ?? ""} />
             <input type="hidden" name="language" value={language} />
             <label>
               {urdu ? "سوال" : "Question"}
@@ -161,20 +166,23 @@ export function Assistant({
           </small>
         </section>
         <aside className="card panel stack">
-          <SectionTitle title="Field context" />
+          <SectionTitle title="Conversation context" />
+          {batchId && <p>Using the storage batch selected in GrainSafe.</p>}
           <label>
             Field
             <select
               aria-label="Field"
-              value={field?.id ?? ""}
+              value={batchId ? "batch" : field?.id ?? ""}
               disabled={pending}
               onChange={(event) => {
                 setFieldId(event.target.value);
+                setBatchId(undefined);
                 setHistory([]);
                 setDismissed(true);
               }}
             >
               <option value="">General chat</option>
+              {batchId && <option value="batch" disabled>Selected storage batch</option>}
               {fields.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.name}

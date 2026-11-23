@@ -11,11 +11,12 @@ from .schema import VisibleDetail
 
 Language = Literal["English", "Urdu"]
 Evidence = Literal["recorded_fact", "ai_interpretation", "forecast"]
-ContextKey = Literal["observation", "analysis", "comparison", "weather", "reminder"]
+ContextKey = Literal["observation", "analysis", "comparison", "weather", "reminder", "irrigation", "rust", "storage"]
 CONTEXT_KEYS: tuple[ContextKey, ...] = ("observation", "analysis", "comparison", "weather", "reminder")
 EVIDENCE_TYPES = {
     "observation": "recorded_fact", "analysis": "ai_interpretation",
     "comparison": "ai_interpretation", "weather": "forecast", "reminder": "recorded_fact",
+    "irrigation": "recorded_fact", "rust": "ai_interpretation", "storage": "recorded_fact",
 }
 
 INSTRUCTIONS = """
@@ -23,7 +24,9 @@ Answer naturally in the requested language, English or Urdu. For general questio
 give a useful answer without requiring a saved field. Use the recent conversation to
 resolve follow-ups. Prior turns provide conversational context, not evidence about a
 saved field. Only use current supplied records for field-specific claims.
-Preserve field names, quantities and units. Ask a brief follow-up when needed.
+Preserve field or batch names, quantities and units. Ask a brief follow-up when needed.
+Treat irrigation and storage readings as farmer records. Missing readings must stay missing.
+Do not certify grain safety, confirm wheat rust, or infer that a review or inspection was completed.
 Use concise paragraphs and keep answers under 1,600 characters.
 Distinguish recorded facts, AI interpretations and forecasts. Say when relevant records
 are missing. Explain symptoms separately from possible causes. Do not confirm diagnoses
@@ -70,7 +73,7 @@ class FieldContext(BaseModel):
     crop_type: VisibleDetail
     crop_variety: VisibleDetail | None = None
     planting_date: date | None = None
-    records: Annotated[list[ContextRecord], Field(max_length=5)] = Field(default_factory=list)
+    records: Annotated[list[ContextRecord], Field(max_length=7)] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def single_record_per_source(self):
@@ -82,7 +85,14 @@ class FieldContext(BaseModel):
 class AssistantDraft(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     answer: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=2400)]
-    used_sources: Annotated[list[ContextKey], Field(max_length=5)]
+    used_sources: Annotated[list[ContextKey], Field(max_length=7)]
+
+
+class BatchContext(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    owner_id: UUID
+    batch_name: VisibleDetail
+    records: Annotated[list[ContextRecord], Field(max_length=2)] = Field(default_factory=list)
 
 
 class AssistantReply(BaseModel):
@@ -95,18 +105,20 @@ class AssistantReply(BaseModel):
 
 def answer_question(
     provider: GeminiCropAnalysis, authenticated_owner: UUID,
-    context: FieldContext | None, request: AssistantRequest,
+    context: FieldContext | BatchContext | None, request: AssistantRequest,
 ) -> AssistantReply:
     if context is not None and context.owner_id != authenticated_owner:
         raise PermissionError("The selected field is unavailable.")
     sources = {record.key: record for record in context.records} if context else {}
-    missing = [key for key in CONTEXT_KEYS if key not in sources] if context else []
+    expected = ("storage", "reminder") if isinstance(context, BatchContext) else (*CONTEXT_KEYS, "irrigation", "rust")
+    missing = [key for key in expected if key not in sources] if context else []
     payload = {
         **request.model_dump(),
         "field": (
             context.model_dump(mode="json", exclude={"owner_id", "field_id"})
-            if context else None
+            if isinstance(context, FieldContext) else None
         ),
+        "storage_batch": context.model_dump(mode="json", exclude={"owner_id"}) if isinstance(context, BatchContext) else None,
         "missing_sources": missing,
     }
     response = provider.generate_findings(

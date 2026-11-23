@@ -4,6 +4,8 @@ import Link from "next/link";
 import { ArrowRight, CloudUpload, ScanLine, X } from "lucide-react";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { saveObservation } from "@/lib/farm-actions";
+import { checkPhotoQuality, loadCaptureReferences } from "@/lib/evidence-action";
+import type { PhotoQuality } from "@/lib/evidence-types";
 import {
   MAX_PHOTOS,
   photoExtensions,
@@ -12,12 +14,17 @@ import {
 } from "@/lib/farm-types";
 import { validatePhoto } from "@/lib/farm-validation";
 import { CropPhoto, EmptyState, PageHeader, SectionTitle } from "./shared";
+import { PhotoEvidence } from "./crop-evidence";
 
 interface Preview {
   id: string;
   file: File;
   url: string;
+  quality?: PhotoQuality;
+  error?: string;
 }
+
+type References = Awaited<ReturnType<typeof loadCaptureReferences>>;
 
 export function Scanner({
   fields,
@@ -36,6 +43,11 @@ export function Scanner({
   const [photos, setPhotos] = useState<Preview[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
+  const [references, setReferences] = useState<{ field: string; items?: References; error?: boolean }>();
+  const [referenceId, setReferenceId] = useState("");
+  const referenceRequest = useRef(0);
+  const referenceList = references?.field === field ? references : undefined;
+  const reference = referenceList?.items?.find(({ id }) => id === referenceId);
   const picker = useRef<HTMLInputElement>(null);
   const request = useRef<string | null>(null);
   const urls = useRef(new Set<string>());
@@ -81,8 +93,28 @@ export function Scanner({
       added.push({ id: crypto.randomUUID(), file, url });
     }
     if (added.length) request.current = null;
-    setPhotos([...photos, ...added]);
+    setPhotos((current) => [...current, ...added]);
     setErrors(rejected);
+    for (const photo of added) {
+      const form = new FormData();
+      form.append("photo", photo.file);
+      const update = (patch: Pick<Preview, "quality" | "error">) =>
+        setPhotos((current) => current.map((item) => item.id === photo.id ? { ...item, ...patch } : item));
+      void checkPhotoQuality(form).then(({ data, error }) => update({ quality: data, error }))
+        .catch(() => update({ error: "The quality check is unavailable. You can still save this photo." }));
+    }
+  }
+
+  async function findReferences() {
+    const version = ++referenceRequest.current;
+    setReferences({ field });
+    setReferenceId("");
+    try {
+      const items = await loadCaptureReferences(field);
+      if (version === referenceRequest.current) setReferences({ field, items });
+    } catch {
+      if (version === referenceRequest.current) setReferences({ field, error: true });
+    }
   }
 
   function remove(photo: Preview) {
@@ -155,6 +187,9 @@ export function Scanner({
                   disabled={pending}
                   onChange={(event) => {
                     request.current = null;
+                    referenceRequest.current++;
+                    setReferences(undefined);
+                    setReferenceId("");
                     setField(event.target.value);
                   }}
                 >
@@ -195,6 +230,26 @@ export function Scanner({
             </section>
             <section className="card panel stack">
               <SectionTitle title={`Crop photographs (${photos.length})`} />
+              <p>Use even daylight and keep the crop clear of obstructions. Capture the same field area from a similar height and direction. Add a focused leaf close-up if useful.</p>
+              <button type="button" className="button button-outline" onClick={() => void findReferences()}
+                disabled={pending || Boolean(referenceList && !referenceList.items && !referenceList.error)}>
+                Find reference photos
+              </button>
+              {referenceList && !referenceList.items && <small role="status">
+                {referenceList.error ? "Could not load references. Try again." : "Loading saved photos…"}
+              </small>}
+              {referenceList?.items?.length === 0 && <small>No saved photos for this field.</small>}
+              {!!referenceList?.items?.length && <label>
+                Reference photo
+                <select aria-label="Reference photo" value={referenceId} onChange={(event) => setReferenceId(event.target.value)}>
+                  <option value="">Choose a previous photo</option>
+                  {referenceList.items.map((item) => <option key={item.id} value={item.id}>{item.date} · {item.name}</option>)}
+                </select>
+              </label>}
+              {reference && <div className="grid-two">
+                <figure><CropPhoto src={reference.url} alt="Saved reference photo" /><figcaption>Reference · {reference.date}</figcaption></figure>
+                {photos[0] && <figure><CropPhoto src={photos[0].url} alt="New capture preview" /><figcaption>New capture</figcaption></figure>}
+              </div>}
               <input
                 ref={picker}
                 type="file"
@@ -234,18 +289,23 @@ export function Scanner({
               {!!photos.length && (
                 <div className="grid-three">
                   {photos.map((photo) => (
-                    <div className="file-tile" key={photo.id}>
-                      <CropPhoto src={photo.url} alt={photo.file.name} />
-                      <button
-                        type="button"
-                        className="icon-button"
-                        disabled={pending}
-                        aria-label={`Remove ${photo.file.name}`}
-                        onClick={() => remove(photo)}
-                      >
-                        <X size={17} />
-                      </button>
-                      <small>{photo.file.name}</small>
+                    <div className="stack" key={photo.id}>
+                      <div className="file-tile">
+                        <CropPhoto src={photo.url} alt={photo.file.name} />
+                        <button
+                          type="button"
+                          className="icon-button"
+                          disabled={pending}
+                          aria-label={`Remove ${photo.file.name}`}
+                          onClick={() => remove(photo)}
+                        >
+                          <X size={17} />
+                        </button>
+                        <small>{photo.file.name}</small>
+                      </div>
+                      <div aria-live="polite">
+                        {photo.quality ? <PhotoEvidence quality={photo.quality} /> : <small>{photo.error ?? "Checking photo quality…"}</small>}
+                      </div>
                     </div>
                   ))}
                 </div>

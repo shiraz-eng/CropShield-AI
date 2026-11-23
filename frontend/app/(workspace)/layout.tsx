@@ -1,7 +1,8 @@
 import { AppShell } from "@/components/shell";
+import { PortalGuide } from "@/components/portal-guide";
 import { DemoProvider } from "@/lib/state";
 import { requireIdentity } from "@/lib/supabase/server";
-import { dueReminderNotices, listFields, listReminders } from "@/lib/farm-data";
+import { dueReminderNotices, listFields, listModuleInspections, listReminders, moduleInspectionNotices } from "@/lib/farm-data";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ export default async function WorkspaceLayout({
   children: React.ReactNode;
 }) {
   const { client, user } = await requireIdentity();
-  const [{ data: profile, error }, fields, reminders] = await Promise.all([
+  const [{ data: profile, error }, fields, reminders, inspections] = await Promise.all([
     client
       .from("profiles")
       .select("full_name,preferred_language")
@@ -19,8 +20,12 @@ export default async function WorkspaceLayout({
       .maybeSingle(),
     listFields(),
     listReminders(),
+    listModuleInspections(),
   ]);
-  const notices = dueReminderNotices(reminders, fields);
+  const notices = [
+    ...dueReminderNotices(reminders, fields),
+    ...moduleInspectionNotices(inspections, fields),
+  ];
   if (error) throw new Error("Could not load the account profile.");
   const metadataName =
     typeof user.user_metadata.full_name === "string"
@@ -46,6 +51,7 @@ export default async function WorkspaceLayout({
       <AppShell fields={fields.map(({ id, name }) => ({ id, name }))}>
         {children}
       </AppShell>
+      <PortalGuide />
     </DemoProvider>
   );
 }

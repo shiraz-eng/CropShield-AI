@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "topics": {
+    "dashboard": {
+      "title": "Dashboard",
+      "steps": [
+        "Review Workspace totals for fields, observations, comparisons, and reminders.",
+        "Choose Scan Crop to save a new observation."
+      ]
+    },
+    "fields": {
+      "title": "My Fields",
+      "steps": [
+        "Open My Fields and choose Add field.",
+        "Enter the field details and choose Save field. Add latitude and longitude if you want a field forecast."
+      ]
+    },
+    "scanner": {
+      "title": "Crop Scanner",
+      "steps": [
+        "Choose an active field and set the Observation date. If you have no fields, create one in My Fields.",
+        "Choose Drop photos or browse files and add up to three JPEG, PNG, or WebP photos. Follow the upload limit shown on the page.",
+        "Review capture warnings, then choose Save observation. Choose Open in Crop Doctor to analyze saved wheat photos."
+      ]
+    },
+    "doctor": {
+      "title": "AI Crop Doctor",
+      "steps": [
+        "Open a saved observation with Analyze or View analysis. Save a wheat observation in Crop Scanner first if the list is empty.",
+        "Choose Analyze saved photos for a new observation. The result explains visible evidence and uncertainty without confirming a diagnosis."
+      ]
+    },
+    "comparison": {
+      "title": "Crop Memory",
+      "steps": [
+        "In Verified historical mode, choose two photo observations from the same wheat field on different dates. Select Check comparison readiness before Compare with Gemini.",
+        "In Illustrative dataset mode, select Check comparison readiness to review the attributed examples before comparing. These photos do not establish a field history."
+      ]
+    },
+    "weather": {
+      "title": "Weather Guardian",
+      "steps": [
+        "Choose a field with latitude and longitude. If coordinates are missing, edit the field in My Fields.",
+        "Read Forecast cautions and the provider timestamp. If the forecast is unavailable, try reloading later."
+      ]
+    },
+    "reminders": {
+      "title": "Reminders",
+      "steps": [
+        "Choose Add reminder. You need an active field first.",
+        "Enter the task, choose a field and due date, then choose Save reminder."
+      ]
+    },
+    "assistant": {
+      "title": "AI Farmer Assistant",
+      "steps": [
+        "In AI Farmer Assistant, open Response language and select \u0627\u0631\u062f\u0648 (Urdu).",
+        "Use General chat or select a field to use its saved records. Enter a question and choose Ask or \u067e\u0648\u0686\u06be\u06cc\u06ba."
+      ]
+    },
+    "reports": {
+      "title": "Reports",
+      "steps": [
+        "Open Reports and find Crop Health Reports, Growth Comparison Reports, or Weather Risk Summaries.",
+        "Choose the PDF link next to the record. Crop Health needs a saved analysis, comparison reports need a saved comparison, and weather reports need field coordinates."
+      ]
+    }
+  }
+}

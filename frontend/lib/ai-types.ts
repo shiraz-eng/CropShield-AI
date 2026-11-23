@@ -1,3 +1,5 @@
+import type { Readiness } from "./evidence-types";
+
 export type Findings = {
   analysis_status: string;
   growth_stage: string;
@@ -20,6 +22,7 @@ export type DatasetSource = {
 };
 
 export type ComparisonFindings = {
+  evidence_readiness?: Readiness | null;
   comparison_id: string;
   comparison_mode: "verified_historical" | "illustrative_dataset";
   earlier_observation_id?: string | null;

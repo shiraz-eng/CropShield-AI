@@ -58,9 +58,11 @@ export async function askAssistant(
   form: FormData,
 ): Promise<AssistantFeedback> {
   const fieldId = String(form.get("field") ?? "");
+  const batchId = String(form.get("batch") ?? "");
   const question = String(form.get("question") ?? "").trim();
   const language = form.get("language") === "Urdu" ? "Urdu" : "English";
   if (fieldId && !isUuid(fieldId)) return { error: "Choose an active field or use general chat." };
+  if (batchId && (!isUuid(batchId) || fieldId)) return { error: "Choose one field or one storage batch." };
   if (!question || question.length > 1200)
     return { error: "Ask a question of up to 1,200 characters." };
   let history: unknown;
@@ -72,14 +74,15 @@ export async function askAssistant(
   }
   const response = await backendResponse("/assistant", {
     method: "POST",
-    body: JSON.stringify({ field_id: fieldId || null, question, language, history }),
+    body: JSON.stringify({ field_id: fieldId || null, batch_id: batchId || null, question, language, history }),
   }, { retryConnection: true });
   if (!(response instanceof Response)) return response;
   if (response.status === 404) {
     revalidatePath("/assistant");
     return {
       fieldUnavailable: true,
-      error: "This field is unavailable. Choose another field or continue in general chat.",
+      error: batchId ? "This storage batch is unavailable. Choose another batch in GrainSafe."
+        : "This field is unavailable. Choose another field or continue in general chat.",
     };
   }
   if (!response.ok) return { error: await backendError(response) };

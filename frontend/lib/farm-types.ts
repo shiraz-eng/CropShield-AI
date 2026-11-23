@@ -1,3 +1,5 @@
+import type { PhotoQuality } from "./evidence-types";
+
 export interface SavedField {
   id: string;
   name: string;
@@ -21,6 +23,7 @@ export interface SavedImage {
   mime_type: string;
   file_size: number;
   url: string | null;
+  photo_quality?: PhotoQuality | null;
 }
 export interface SavedObservation {
   id: string;

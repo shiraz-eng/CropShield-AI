@@ -1,0 +1,12 @@
+{
+  "name": "cropshield-ai",
+  "private": true,
+  "description": "Local development launcher for the CropShield AI frontend and backend.",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "dev:check": "node scripts/dev.mjs --check"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

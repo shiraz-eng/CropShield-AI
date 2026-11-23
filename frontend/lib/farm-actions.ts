@@ -11,6 +11,8 @@ import {
 } from "./farm-types";
 import { formText, isDate, isUuid, verifyPhoto } from "./farm-validation";
 import sharp from "sharp";
+import { callBackend } from "./backend";
+import type { PhotoQuality } from "./evidence-types";
 
 const sessionError = { error: "Your session expired. Sign in and try again." };
 
@@ -183,16 +185,26 @@ export async function saveObservation(
       };
     }
   }
+  const quality = await Promise.all(files.map((file) =>
+    callBackend<PhotoQuality>("/photo-quality", {
+      method: "POST", body: file, headers: { "Content-Type": file.type }, signal: AbortSignal.timeout(8000),
+    }).then(({ data }) => data ?? null).catch(() => null),
+  ));
+  if (quality.some((item) => !item || item.quality_status === "unavailable"))
+    feedback.message += " Some photo quality checks were unavailable.";
+  if (quality.some((item) => item?.quality_status === "warning"))
+    feedback.message += " At least one photo has a capture warning.";
   const bucket = client.storage.from(PHOTO_BUCKET);
   const images = [];
   try {
-    for (const file of files) {
+    for (const [index, file] of files.entries()) {
       const storage_path = `${user.id}/${observation}/${crypto.randomUUID()}.${photoExtensions[file.type as keyof typeof photoExtensions]}`;
       images.push({
         storage_path,
         original_filename: file.name.slice(0, 255) || "crop-photo",
         mime_type: file.type,
         file_size: file.size,
+        photo_quality: quality[index],
       });
       const { error } = await bucket.upload(storage_path, file, {
         contentType: file.type,
