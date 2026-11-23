@@ -1328,6 +1328,23 @@ label {
   gap: 8px;
   align-items: end;
 }
+.demo-login {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid #a5cab1;
+  border-radius: 12px;
+  background: #edf7ee;
+  color: #103b2b;
+}
+.demo-login h2 {
+  font-size: 1.125rem;
+}
+.demo-login strong,
+.demo-login code {
+  display: block;
+  overflow-wrap: anywhere;
+}
 .field-placeholder {
   display: grid;
   place-items: center;
@@ -1355,6 +1372,12 @@ label {
   }
   .auth-story {
     min-height: 160px;
+  }
+  .auth-layout-login .auth-story {
+    min-height: auto;
+  }
+  .auth-layout-login .auth-story h2 {
+    display: none;
   }
   .auth-content {
     padding: 16px;

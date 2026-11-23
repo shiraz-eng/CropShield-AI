@@ -47,7 +47,7 @@ export function AuthForm({
   const [visible, setVisible] = useState(false);
   const [title, description, label] = copy[mode];
   return (
-    <main className="auth-layout">
+    <main className={mode === "login" ? "auth-layout auth-layout-login" : "auth-layout"}>
       <section className="auth-story">
         <CropPhoto src="/crops/golden.jpg" className="hero-photo" alt="" />
         <span className="brand">
@@ -70,17 +70,15 @@ export function AuthForm({
           )}
           {notice && <p role="status">{notice}</p>}
           {mode === "login" && configured && (
-            <p className="insight" style={{ display: "block", overflowWrap: "anywhere" }}>
-              <strong>Demo email</strong> cropshield-demo@example.com
-              <br />
+            <section className="demo-login" aria-label="Public demo account">
+              <h2>Try the demo</h2>
+              <div><strong>Demo email</strong><code>cropshield-demo@example.com</code></div>
               {demoPassword ? (
-                <>
-                  <strong>Demo password</strong> <code>{demoPassword}</code>
-                </>
+                <div><strong>Demo password</strong><code>{demoPassword}</code></div>
               ) : (
-                "Use the demo password shared with you."
+                <p>Use the demo password shared with you.</p>
               )}
-            </p>
+            </section>
           )}
           <form action={submit} className="stack">
             {mode === "signup" && (
